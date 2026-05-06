@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, useColorScheme, FlatList, TouchableOpacity, Image, TextInput, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon, MapPin } from 'lucide-react-native';
+import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon, MapPin, Phone, Video, MoreVertical, Mic, CheckCheck } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,6 +11,8 @@ interface Message {
   id: string;
   text: string;
   sender: 'user' | 'bot';
+  timestamp: string;
+  status?: 'sent' | 'delivered' | 'read';
   attachment?: {
     type: 'image' | 'pdf' | 'audio';
     uri: string;
@@ -19,10 +21,10 @@ interface Message {
 }
 
 const CHATS = [
-  { id: 'ai', name: 'Wayfarer AI', lastMsg: "How can I help with your trip?", time: 'Just now', unread: 0, isAI: true },
-  { id: '1', name: 'Paris Trip Group', lastMsg: "Don't forget the museum tickets!", time: '10:30 AM', unread: 3, avatar: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=100&auto=format&fit=crop' },
-  { id: '2', name: 'Alex Johnson', lastMsg: 'Sent a photo', time: 'Yesterday', unread: 0, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' },
-  { id: '4', name: 'Sarah Miller', lastMsg: 'Are we still on for lunch?', time: '2:15 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' },
+  { id: 'ai', name: 'Wayfarer AI', lastMsg: "How can I help with your trip?", time: 'Just now', unread: 0, isAI: true, status: 'Online' },
+  { id: '1', name: 'Paris Trip Group', lastMsg: "Don't forget the tickets!", time: '10:30 AM', unread: 3, avatar: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=100&auto=format&fit=crop', status: 'Online' },
+  { id: '2', name: 'Alex Johnson', lastMsg: 'Sent a photo', time: 'Yesterday', unread: 0, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop', status: 'Last seen 2h ago' },
+  { id: '4', name: 'Sarah Miller', lastMsg: 'Lunch tomorrow?', time: '2:15 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop', status: 'Online' },
 ];
 
 export default function ChatScreen() {
@@ -30,8 +32,9 @@ export default function ChatScreen() {
   const colors = Colors[colorScheme];
   const [activeChat, setActiveChat] = useState<any>(null);
   const [inputText, setInputText] = useState('');
+  const [isCalling, setIsCalling] = useState<'audio' | 'video' | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: "Hello! I'm your Wayfarer AI. Ready to plan your next adventure?", sender: 'bot' }
+    { id: '1', text: "Hello! Ready for Paris?", sender: 'bot', timestamp: '10:00 AM', status: 'read' }
   ]);
   const [attachment, setAttachment] = useState<any>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -39,27 +42,46 @@ export default function ChatScreen() {
   const handleSend = () => {
     if (inputText.trim() === '' && !attachment) return;
 
-    const userMsg: Message = { 
-      id: Date.now().toString(), 
-      text: inputText, 
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      text: inputText,
       sender: 'user',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'sent',
       attachment: attachment || undefined
     };
 
-    setMessages([...messages, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInputText('');
     setAttachment(null);
-    
+
     if (activeChat?.isAI) {
       setTimeout(() => {
-        const botMsg: Message = { 
-          id: (Date.now()+1).toString(), 
-          text: attachment ? "Received your file! I'll process that right away." : "I've analyzed that for you! What else can I help with?", 
-          sender: 'bot' 
+        const botMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          text: attachment ? "I've received your file! Processing..." : "Great! How else can I help?",
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'read'
         };
         setMessages(prev => [...prev, botMsg]);
       }, 1000);
     }
+  };
+
+  const startCall = (type: 'audio' | 'video') => {
+    setIsCalling(type);
+  };
+
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  const handleMorePress = () => {
+    setShowMoreMenu(!showMoreMenu);
+  };
+
+  const handleMenuAction = (action: string) => {
+    setShowMoreMenu(false);
+    Alert.alert(action, `This feature for ${activeChat.name} is coming soon!`);
   };
 
   const pickImage = async () => {
@@ -111,7 +133,7 @@ export default function ChatScreen() {
   };
 
   const renderChatItem = ({ item }: any) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.chatItem, { borderBottomColor: colors.border }]}
       onPress={() => setActiveChat(item)}
     >
@@ -146,13 +168,39 @@ export default function ChatScreen() {
   if (activeChat) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {/* Call Overlay */}
+        {isCalling && (
+          <View style={styles.callOverlay}>
+            <Image source={{ uri: activeChat.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=300&auto=format&fit=crop' }} style={StyleSheet.absoluteFill} blurRadius={20} />
+            <View style={styles.callContent}>
+              <View style={styles.callerInfo}>
+                <Image source={{ uri: activeChat.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=300&auto=format&fit=crop' }} style={styles.callerAvatar} />
+                <Text style={styles.callerName}>{activeChat.name}</Text>
+                <Text style={styles.callStatus}>{isCalling === 'video' ? 'Starting video call...' : 'Ringing...'}</Text>
+              </View>
+
+              <View style={styles.callActions}>
+                <TouchableOpacity style={[styles.callBtn, { backgroundColor: '#ffffff30' }]}>
+                  <Mic size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.callBtn, { backgroundColor: '#ef4444' }]} onPress={() => setIsCalling(null)}>
+                  <Phone size={24} color="#fff" style={{ transform: [{ rotate: '135deg' }] }} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.callBtn, { backgroundColor: '#ffffff30' }]}>
+                  <Video size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={[styles.detailHeader, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setActiveChat(null)} style={styles.backBtn}>
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             {activeChat.isAI ? (
-               <View style={[styles.aiAvatarSmall, { backgroundColor: colors.tint + '15' }]}>
+              <View style={[styles.aiAvatarSmall, { backgroundColor: colors.tint + '15' }]}>
                 <Sparkles size={16} color={colors.tint} />
               </View>
             ) : (
@@ -160,15 +208,51 @@ export default function ChatScreen() {
             )}
             <View>
               <Text style={[styles.headerTitle, { color: colors.text }]}>{activeChat.name}</Text>
-              <Text style={[styles.headerStatus, { color: colors.secondary }]}>Online</Text>
+              <Text style={[styles.headerStatus, { color: colors.secondary }]}>{activeChat.status || 'Online'}</Text>
             </View>
           </View>
+          <View style={styles.headerActions}>
+            {!activeChat.isAI && (
+              <>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={() => startCall('video')}>
+                  <Video size={30} color={colors.tint} strokeWidth={1.5} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={() => startCall('audio')}>
+                  <Phone size={22} color={colors.tint} strokeWidth={1.5} />
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.headerActionBtn} onPress={handleMorePress}>
+              <MoreVertical size={22} color={colors.tabIconDefault} />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {showMoreMenu && (
+          <>
+            <TouchableOpacity
+              style={styles.menuBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowMoreMenu(false)}
+            />
+            <View style={[styles.moreMenu, { backgroundColor: colors.card, shadowColor: '#000' }]}>
+              <TouchableOpacity style={styles.moreItem} onPress={() => handleMenuAction('Profile')}>
+                <Text style={[styles.moreText, { color: colors.text }]}>View Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.moreItem} onPress={() => handleMenuAction('Mute')}>
+                <Text style={[styles.moreText, { color: colors.text }]}>Mute Notifications</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.moreItem} onPress={() => handleMenuAction('Clear')}>
+                <Text style={[styles.moreText, { color: '#ef4444' }]}>Clear Chat</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         <ScrollView contentContainerStyle={styles.chatContent}>
           {messages.map(m => (
             <View key={m.id} style={[styles.msgWrapper, m.sender === 'user' ? styles.userWrap : styles.botWrap]}>
-              <View style={[styles.bubble, m.sender === 'user' ? [styles.userBubble, {backgroundColor: colors.tint}] : [styles.botBubble, {backgroundColor: colors.card, borderColor: colors.border}]]}>
+              <View style={[styles.bubble, m.sender === 'user' ? [styles.userBubble, { backgroundColor: colors.tint }] : [styles.botBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}>
                 {m.attachment && (
                   <View style={styles.attachmentPreview}>
                     {m.attachment.type === 'image' ? (
@@ -181,7 +265,15 @@ export default function ChatScreen() {
                     )}
                   </View>
                 )}
-                {m.text ? <Text style={[styles.msgText, { color: m.sender === 'user' ? '#fff' : colors.text }]}>{m.text}</Text> : null}
+                <View style={styles.msgMain}>
+                  {m.text ? <Text style={[styles.msgText, { color: m.sender === 'user' ? '#fff' : colors.text }]}>{m.text}</Text> : null}
+                  <View style={styles.msgMeta}>
+                    <Text style={[styles.msgTime, { color: m.sender === 'user' ? '#ffffff80' : colors.tabIconDefault }]}>{m.timestamp}</Text>
+                    {m.sender === 'user' && (
+                      <CheckCheck size={14} color={m.status === 'read' ? '#fff' : '#ffffff80'} />
+                    )}
+                  </View>
+                </View>
               </View>
             </View>
           ))}
@@ -229,9 +321,15 @@ export default function ChatScreen() {
               value={inputText}
               onChangeText={setInputText}
             />
-            <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.tint }]} onPress={handleSend}>
-              <Send size={18} color="#fff" />
-            </TouchableOpacity>
+            {inputText.trim().length > 0 ? (
+              <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.tint }]} onPress={handleSend}>
+                <Send size={18} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.tint + '15' }]}>
+                <Mic size={22} color={colors.tint} />
+              </TouchableOpacity>
+            )}
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -292,21 +390,26 @@ const styles = StyleSheet.create({
   unreadText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   detailHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backBtn: { padding: 8, marginRight: 8 },
-  headerInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  headerActionBtn: { padding: 8 },
   avatarSmall: { width: 40, height: 40, borderRadius: 14 },
   aiAvatarSmall: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700' },
   headerStatus: { fontSize: 12, fontWeight: '600' },
-  chatContent: { padding: 20, gap: 16 },
-  msgWrapper: { flexDirection: 'row', width: '100%' },
+  chatContent: { padding: 20, paddingBottom: 40 },
+  msgWrapper: { flexDirection: 'row', width: '100%', marginBottom: 12 },
   userWrap: { justifyContent: 'flex-end' },
   botWrap: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', padding: 14, borderRadius: 20 },
+  bubble: { maxWidth: '85%', padding: 12, borderRadius: 20 },
   userBubble: { borderBottomRightRadius: 4 },
   botBubble: { borderBottomLeftRadius: 4, borderWidth: 1 },
+  msgMain: { flexDirection: 'column' },
   msgText: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  msgMeta: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 4, marginTop: 4 },
+  msgTime: { fontSize: 10, fontWeight: '600' },
   attachmentPreview: { marginBottom: 8, borderRadius: 12, overflow: 'hidden' },
-  msgImage: { width: 200, height: 150, borderRadius: 12 },
+  msgImage: { width: 220, height: 160, borderRadius: 12 },
   fileRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   fileName: { fontSize: 14, fontWeight: '600', maxWidth: 150 },
   attachMenu: { position: 'absolute', bottom: 70, left: 16, right: 16, padding: 16, borderRadius: 20, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-around', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
@@ -318,4 +421,41 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 16, borderTopWidth: 1, gap: 10 },
   input: { flex: 1, fontSize: 16, height: 44 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+
+  // Call Styles
+  callOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 1000, backgroundColor: '#000' },
+  callContent: { flex: 1, justifyContent: 'space-around', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 100 },
+  callerInfo: { alignItems: 'center' },
+  callerAvatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 20, borderWidth: 4, borderColor: 'rgba(255,255,255,0.2)' },
+  callerName: { fontSize: 32, fontWeight: '800', color: '#fff' },
+  callStatus: { fontSize: 16, color: 'rgba(255,255,255,0.7)', marginTop: 8 },
+  callActions: { flexDirection: 'row', gap: 30, alignItems: 'center' },
+  // More Menu Styles (WhatsApp Native Look)
+  menuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1500,
+  },
+  moreMenu: {
+    position: 'absolute',
+    top: 110,
+    right: 15,
+    width: 200,
+    borderRadius: 8,
+    paddingVertical: 8,
+    zIndex: 2000,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  moreItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  moreText: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  callBtn: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
 });
