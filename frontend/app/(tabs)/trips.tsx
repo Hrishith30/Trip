@@ -41,6 +41,7 @@ export default function TripsScreen() {
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
   const [locationResults, setLocationResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingImage, setLoadingImage] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickingDateType, setPickingDateType] = useState<'start' | 'end'>('start');
   const searchTimer = useRef<any>(null);
@@ -102,7 +103,13 @@ export default function TripsScreen() {
   };
 
   const selectLocation = (item: any) => {
-    setFormData(f => ({ ...f, location: `${item.title}${item.subtitle ? ', ' + item.subtitle : ''}` }));
+    setLoadingImage(true);
+    const cleanLocation = item.title.split(',')[0].trim();
+    setFormData(f => ({ 
+      ...f, 
+      location: `${item.title}${item.subtitle ? ', ' + item.subtitle : ''}`,
+      image: `https://loremflickr.com/800/600/${encodeURIComponent(cleanLocation)}/all?random=${Date.now()}`
+    }));
     setLocationResults([]);
   };
 
@@ -286,6 +293,28 @@ export default function TripsScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              {formData.image && (
+                <View style={styles.modalImageContainer}>
+                  <Image 
+                    source={{ uri: formData.image }} 
+                    style={styles.modalImage} 
+                    resizeMode="cover"
+                    onLoadStart={() => setLoadingImage(true)}
+                    onLoadEnd={() => setLoadingImage(false)}
+                    onError={() => {
+                      setLoadingImage(false);
+                      setFormData(f => ({ ...f, image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop' }));
+                    }}
+                  />
+                  {loadingImage && (
+                    <View style={[styles.imageLoader, { backgroundColor: colors.border + '50' }]}>
+                      <ActivityIndicator color={colors.tint} />
+                    </View>
+                  )}
+                  <View style={styles.imageOverlay} />
+                </View>
+              )}
+
               <View style={styles.formItem}>
                 <Text style={[styles.label, { color: colors.tabIconDefault }]}>Adventure Name</Text>
                 <TextInput
@@ -499,4 +528,11 @@ const styles = StyleSheet.create({
 
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
   dateSubLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  modalImageContainer: { height: 200, width: '100%', borderRadius: 24, overflow: 'hidden', marginBottom: 24, position: 'relative' },
+  modalImage: { width: '100%', height: '100%' },
+  imageLoader: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
+  imageTextOverlay: { position: 'absolute', bottom: 16, left: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  imageOverlayText: { color: '#fff', fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
 });
