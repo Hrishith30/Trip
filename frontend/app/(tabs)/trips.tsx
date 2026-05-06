@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
-import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle, CheckCircle2, Circle } from 'lucide-react-native';
+import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle, CheckCircle2, Circle, ListTodo } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import CustomTimePicker from '../../components/CustomTimePicker';
@@ -117,6 +117,8 @@ export default function TripsScreen() {
     checklist: []
   });
   const [checklistInput, setChecklistInput] = useState('');
+  const [itineraryChecklistInput, setItineraryChecklistInput] = useState('');
+  const [showChecklistInput, setShowChecklistInput] = useState(false);
 
   const performLocationSearch = async (query: string) => {
     if (query.length <= 2) {
@@ -347,6 +349,8 @@ export default function TripsScreen() {
   const handleOpenItinerary = (trip: any) => {
     setSelectedTrip(trip);
     setItineraryModalVisible(true);
+    setShowChecklistInput(false);
+    setItineraryChecklistInput('');
   };
 
   const handleOpenActivityForm = (activity: any = null) => {
@@ -437,6 +441,22 @@ export default function TripsScreen() {
     const updatedTrip = { ...selectedTrip, checklist: updatedChecklist };
     setSelectedTrip(updatedTrip);
     setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+  };
+
+  const handleAddItineraryChecklistItem = () => {
+    if (!itineraryChecklistInput.trim()) return;
+    const newItem = {
+      id: Date.now().toString(),
+      text: itineraryChecklistInput.trim(),
+      completed: false
+    };
+    const updatedTrip = {
+      ...selectedTrip,
+      checklist: [...(selectedTrip.checklist || []), newItem]
+    };
+    setSelectedTrip(updatedTrip);
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+    setItineraryChecklistInput('');
   };
 
 
@@ -858,23 +878,48 @@ export default function TripsScreen() {
                 /* Itinerary List View */
                 <>
                   <View style={styles.itineraryHeaderRow}>
-                    <View style={{ flex: 1, marginRight: 16 }}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
                       <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>{selectedTrip?.name || 'Itinerary'}</Text>
                       <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]} numberOfLines={1}>{selectedTrip?.location}</Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleOpenActivityForm()}
-                      style={[styles.addActivityBtn, { backgroundColor: colors.tint }]}
-                    >
-                      <PlusCircle size={18} color="#fff" />
-                      <Text style={[styles.addActivityText, { color: '#fff' }]}>Add</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => handleOpenActivityForm()}
+                        style={[styles.addActivityBtn, { backgroundColor: colors.tint }]}
+                      >
+                        <PlusCircle size={18} color="#fff" />
+                        <Text style={[styles.addActivityText, { color: '#fff' }]}>Add</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setShowChecklistInput(!showChecklistInput)}
+                        style={[styles.addActivityBtn, { backgroundColor: colors.border, paddingHorizontal: 12 }]}
+                      >
+                        <ListTodo size={18} color={colors.text} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   <ScrollView 
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                   >
+                    {showChecklistInput && (
+                      <View style={[styles.quickAddChecklist, { borderColor: colors.border }]}>
+                        <TextInput
+                          style={[styles.quickAddInput, { color: colors.text }]}
+                          placeholder="Quick add item..."
+                          placeholderTextColor={colors.tabIconDefault}
+                          value={itineraryChecklistInput}
+                          onChangeText={setItineraryChecklistInput}
+                          onSubmitEditing={handleAddItineraryChecklistItem}
+                          autoFocus
+                        />
+                        <TouchableOpacity onPress={handleAddItineraryChecklistItem}>
+                          <Plus size={20} color={colors.tint} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
                     {selectedTrip?.checklist && selectedTrip.checklist.length > 0 && (
                       <View style={styles.itineraryChecklist}>
                         <Text style={[styles.sectionLabel, { color: colors.tabIconDefault }]}>TRIP CHECKLIST</Text>
@@ -978,7 +1023,10 @@ export default function TripsScreen() {
                     )}
                     <TouchableOpacity
                       style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
-                      onPress={() => setItineraryModalVisible(false)}
+                      onPress={() => {
+                        setItineraryModalVisible(false);
+                        setShowChecklistInput(false);
+                      }}
                     >
                       <Text style={styles.saveBtnText}>Close Itinerary</Text>
                     </TouchableOpacity>
@@ -1132,4 +1180,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
   checklistItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   checklistItemText: { fontSize: 15, fontWeight: '600' },
+
+  quickAddChecklist: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderRadius: 16, marginBottom: 20, gap: 12 },
+  quickAddInput: { flex: 1, fontSize: 14, fontWeight: '500' },
 });
