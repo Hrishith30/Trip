@@ -716,7 +716,7 @@ export default function TripsScreen() {
                       </TouchableOpacity>
                     </Modal>
 
-                    <View style={styles.formItem}>
+                    <View style={[styles.formItem, { marginTop: 16 }]}>
                       <Text style={[styles.label, { color: colors.tabIconDefault }]}>Description</Text>
                       <TextInput
                         style={[styles.input, { color: colors.text, borderColor: colors.border, height: 100, paddingTop: 12 }]}
