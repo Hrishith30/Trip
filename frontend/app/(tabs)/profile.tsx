@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert } from 'react-native';
-import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon } from 'lucide-react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert, Modal, Pressable } from 'react-native';
+import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,6 +13,21 @@ export default function ProfileScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop');
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -110,21 +126,53 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.profileHeader}>
-            <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
-              <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop' }} 
-                style={styles.avatar} 
-              />
+            <View style={styles.avatarWrapper}>
+              <TouchableOpacity 
+                activeOpacity={0.9} 
+                onPress={() => setImagePreviewVisible(true)}
+              >
+                <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
+                  <Image 
+                    source={{ uri: profileImage }} 
+                    style={styles.avatar} 
+                  />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.editAvatarBtn, { backgroundColor: colors.tint }]}
+                onPress={pickImage}
+              >
+                <Pencil size={14} color="#fff" />
+              </TouchableOpacity>
             </View>
             <Text style={[styles.userName, { color: colors.text }]}>Hrishith</Text>
             <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>hrishith@example.com</Text>
-            <TouchableOpacity 
-              style={[styles.editButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => router.push('/settings/edit-profile')}
-            >
-              <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
+
+          {/* Image Preview Modal */}
+          <Modal
+            visible={imagePreviewVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setImagePreviewVisible(false)}
+          >
+            <Pressable 
+              style={styles.previewOverlay} 
+              onPress={() => setImagePreviewVisible(false)}
+            >
+              <TouchableOpacity 
+                style={styles.previewCloseBtn}
+                onPress={() => setImagePreviewVisible(false)}
+              >
+                <X size={30} color="#fff" />
+              </TouchableOpacity>
+              <Image 
+                source={{ uri: profileImage }} 
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            </Pressable>
+          </Modal>
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Account</Text>
@@ -211,11 +259,26 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     marginTop: 10,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatarContainer: {
     padding: 4,
     borderWidth: 2,
     borderRadius: 60,
-    marginBottom: 16,
+  },
+  editAvatarBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   avatar: {
     width: 100,
@@ -301,5 +364,22 @@ const styles = StyleSheet.create({
   themeText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewCloseBtn: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    zIndex: 10,
+    padding: 10,
+  },
+  previewImage: {
+    width: '100%',
+    height: '80%',
   },
 });
