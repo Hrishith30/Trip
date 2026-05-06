@@ -12,10 +12,10 @@ export default function Dashboard() {
   
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'Good Morning';
-    if (hour >= 12 && hour < 17) return 'Good Afternoon';
-    if (hour >= 17 && hour < 21) return 'Good Evening';
-    return 'Good Night';
+    if (hour >= 5 && hour < 12) return 'Rise & Wander';
+    if (hour >= 12 && hour < 17) return 'Peak Adventure';
+    if (hour >= 17 && hour < 21) return 'Golden Hour';
+    return 'Under the Stars';
   };
 
   const StatCard = ({ icon: Icon, value, label, color }: any) => (
