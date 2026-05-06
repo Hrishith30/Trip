@@ -108,6 +108,7 @@ export default function TripsScreen() {
   const [editingTrip, setEditingTrip] = useState<any>(null);
   const [itineraryModalVisible, setItineraryModalVisible] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'itinerary' | 'checklist'>('itinerary');
   const [locationResults, setLocationResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
@@ -181,7 +182,6 @@ export default function TripsScreen() {
   const [checklistInput, setChecklistInput] = useState('');
   const [itineraryChecklistInput, setItineraryChecklistInput] = useState('');
   const [showChecklistInput, setShowChecklistInput] = useState(false);
-  const [checklistModalVisible, setChecklistModalVisible] = useState(false);
   const [editingChecklistItemId, setEditingChecklistItemId] = useState<string | null>(null);
 
   const performLocationSearch = async (query: string) => {
@@ -412,10 +412,10 @@ export default function TripsScreen() {
 
   const handleOpenItinerary = (trip: any) => {
     setSelectedTrip(trip);
+    setActiveTab('itinerary');
     setItineraryModalVisible(true);
     setShowChecklistInput(false);
     setItineraryChecklistInput('');
-    setChecklistModalVisible(false);
     setEditingChecklistItemId(null);
   };
 
@@ -980,114 +980,190 @@ export default function TripsScreen() {
                 <>
                   <View style={styles.itineraryHeaderRow}>
                     <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>{selectedTrip?.name || 'Itinerary'}</Text>
+                      <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>{selectedTrip?.name || 'Trip Details'}</Text>
                       <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]} numberOfLines={1}>{selectedTrip?.location}</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        onPress={() => handleOpenActivityForm()}
-                        style={[styles.addActivityBtn, { backgroundColor: colors.tint, opacity: 1 }]}
-                      >
-                        <Plus size={20} color="#fff" strokeWidth={2.5} />
-                        <Text style={[styles.addActivityText, { color: '#fff' }]}>Add</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => setChecklistModalVisible(true)}
-                        style={[styles.addActivityBtn, { backgroundColor: colors.border, paddingHorizontal: 12 }]}
-                      >
-                        <ListTodo size={18} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity 
+                      onPress={() => setItineraryModalVisible(false)} 
+                      style={styles.closeBtn}
+                    >
+                      <X size={24} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.tabBar, { backgroundColor: colors.border + '30' }]}>
+                    <TouchableOpacity 
+                      style={[styles.tab, activeTab === 'itinerary' && { backgroundColor: colors.card, elevation: 4 }]}
+                      onPress={() => setActiveTab('itinerary')}
+                    >
+                      <Compass size={18} color={activeTab === 'itinerary' ? colors.tint : colors.tabIconDefault} />
+                      <Text style={[styles.tabText, { color: activeTab === 'itinerary' ? colors.text : colors.tabIconDefault }]}>Timeline</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.tab, activeTab === 'checklist' && { backgroundColor: colors.card, elevation: 4 }]}
+                      onPress={() => setActiveTab('checklist')}
+                    >
+                      <ListTodo size={18} color={activeTab === 'checklist' ? colors.tint : colors.tabIconDefault} />
+                      <Text style={[styles.tabText, { color: activeTab === 'checklist' ? colors.text : colors.tabIconDefault }]}>Checklist</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={{ paddingBottom: 40 }}
                   >
-                    <Text style={[styles.sectionLabel, { color: colors.tabIconDefault, marginTop: 10, marginBottom: 12 }]}>ITINERARY</Text>
+                    {activeTab === 'itinerary' ? (
+                      <>
+                        <View style={styles.sectionHeaderRow}>
+                          <Text style={[styles.sectionLabel, { color: colors.tabIconDefault }]}>ITINERARY</Text>
+                          <TouchableOpacity 
+                            onPress={() => handleOpenActivityForm()}
+                            style={[styles.miniAddBtn, { backgroundColor: colors.tint + '15' }]}
+                          >
+                            <Plus size={16} color={colors.tint} strokeWidth={3} />
+                            <Text style={[styles.miniAddText, { color: colors.tint }]}>Add Activity</Text>
+                          </TouchableOpacity>
+                        </View>
 
-                    {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
-                      const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
-                      const isCompleted = !!item.completed;
+                        {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
+                          const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
+                          const isCompleted = !!item.completed;
 
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={styles.itineraryItem}
-                          activeOpacity={0.8}
-                          onPress={() => handleToggleActivityComplete(item.id)}
-                        >
-                          <View style={styles.timeline}>
-                            <View style={[
-                              styles.timelineIconContainer,
-                              {
-                                backgroundColor: isCompleted ? colors.background : colors.tint,
-                                borderColor: isCompleted ? colors.border : colors.tint,
-                              }
-                            ]}>
-                              <IconComp size={16} color={isCompleted ? colors.tabIconDefault : '#fff'} />
-                            </View>
-                            {idx !== (selectedTrip.itinerary.length - 1) && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
-                          </View>
-                          <View style={[
-                            styles.itineraryCard,
-                            {
-                              backgroundColor: isCompleted ? 'rgba(0,0,0,0.02)' : colors.background,
-                              borderColor: colors.border,
-                              opacity: isCompleted ? 0.6 : 1
-                            }
-                          ]}>
-                            <View style={styles.itineraryText}>
-                              <View style={styles.itineraryHeader}>
-                                <View>
-                                  <Text style={[
-                                    styles.itineraryTime,
-                                    { color: isCompleted ? colors.tabIconDefault : colors.tint },
-                                    isCompleted && { textDecorationLine: 'line-through' }
-                                  ]}>{item.time}</Text>
-                                  {item.date && (
-                                    <Text style={[styles.itineraryDate, { color: colors.tabIconDefault }]}>
-                                      {formatDate(safeDate(item.date))}
-                                    </Text>
-                                  )}
+                          return (
+                            <TouchableOpacity
+                              key={item.id}
+                              style={styles.itineraryItem}
+                              activeOpacity={0.8}
+                              onPress={() => handleToggleActivityComplete(item.id)}
+                            >
+                              <View style={styles.timeline}>
+                                <View style={[
+                                  styles.timelineIconContainer,
+                                  {
+                                    backgroundColor: isCompleted ? colors.background : colors.tint,
+                                    borderColor: isCompleted ? colors.border : colors.tint,
+                                  }
+                                ]}>
+                                  <IconComp size={16} color={isCompleted ? colors.tabIconDefault : '#fff'} />
                                 </View>
-                                <View style={styles.itineraryActions}>
-                                  <TouchableOpacity onPress={() => handleOpenActivityForm(item)} style={{ padding: 4 }}>
-                                    <Edit2 size={16} color={colors.tabIconDefault} />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => handleDeleteActivity(item.id)} style={{ padding: 4 }}>
-                                    <Trash2 size={16} color="#ef4444" />
-                                  </TouchableOpacity>
+                                {idx !== (selectedTrip.itinerary.length - 1) && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
+                              </View>
+                              <View style={[
+                                styles.itineraryCard,
+                                {
+                                  backgroundColor: isCompleted ? 'rgba(0,0,0,0.02)' : colors.background,
+                                  borderColor: colors.border,
+                                  opacity: isCompleted ? 0.6 : 1
+                                }
+                              ]}>
+                                <View style={styles.itineraryText}>
+                                  <View style={styles.itineraryHeader}>
+                                    <View>
+                                      <Text style={[
+                                        styles.itineraryTime,
+                                        { color: isCompleted ? colors.tabIconDefault : colors.tint },
+                                        isCompleted && { textDecorationLine: 'line-through' }
+                                      ]}>{item.time}</Text>
+                                      {item.date && (
+                                        <Text style={[styles.itineraryDate, { color: colors.tabIconDefault }]}>
+                                          {formatDate(safeDate(item.date))}
+                                        </Text>
+                                      )}
+                                    </View>
+                                    <View style={styles.itineraryActions}>
+                                      <TouchableOpacity onPress={() => handleOpenActivityForm(item)} style={{ padding: 4 }}>
+                                        <Edit2 size={16} color={colors.tabIconDefault} />
+                                      </TouchableOpacity>
+                                      <TouchableOpacity onPress={() => handleDeleteActivity(item.id)} style={{ padding: 4 }}>
+                                        <Trash2 size={16} color="#ef4444" />
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                  <View style={styles.eventRow}>
+                                    <Text style={[
+                                      styles.itineraryEvent,
+                                      { color: colors.text },
+                                      isCompleted && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
+                                    ]}>{item.event}</Text>
+                                  </View>
+                                  <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
                                 </View>
                               </View>
-                              <View style={styles.eventRow}>
-                                <Text style={[
-                                  styles.itineraryEvent,
-                                  { color: colors.text },
-                                  isCompleted && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
-                                ]}>{item.event}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {(!selectedTrip?.itinerary || selectedTrip.itinerary.length === 0) && (
+                          <View style={styles.emptyItinerary}>
+                            <Compass size={48} color={colors.border} />
+                            <Text style={[styles.emptyItineraryText, { color: colors.tabIconDefault }]}>No activities planned yet.</Text>
+                          </View>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.sectionHeaderRow}>
+                          <Text style={[styles.sectionLabel, { color: colors.tabIconDefault }]}>PREPARATION</Text>
+                        </View>
+
+                        <View style={[styles.quickAddChecklist, { borderColor: colors.border, marginTop: 4 }]}>
+                          <TextInput
+                            style={[styles.quickAddInput, { color: colors.text }]}
+                            placeholder={editingChecklistItemId ? "Edit item..." : "Add to checklist..."}
+                            placeholderTextColor={colors.tabIconDefault}
+                            value={itineraryChecklistInput}
+                            onChangeText={setItineraryChecklistInput}
+                            onSubmitEditing={handleAddItineraryChecklistItem}
+                          />
+                          <TouchableOpacity 
+                            onPress={handleAddItineraryChecklistItem}
+                            style={[styles.quickAddBtn, { backgroundColor: colors.tint }]}
+                            activeOpacity={0.9}
+                          >
+                            {editingChecklistItemId ? (
+                              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>SAVE</Text>
+                            ) : (
+                              <Plus size={24} color="#fff" strokeWidth={3} />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+
+                        {(selectedTrip?.checklist || []).map((item: any) => (
+                          <View key={item.id} style={[styles.checklistItemCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                            <TouchableOpacity
+                              style={styles.checklistItem}
+                              onPress={() => handleToggleChecklistItem(item.id)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={[styles.checkCircle, { borderColor: item.completed ? colors.tint : colors.border, backgroundColor: item.completed ? colors.tint : 'transparent' }]}>
+                                {item.completed && <CheckCircle2 size={14} color="#fff" />}
                               </View>
-                              <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
+                              <Text style={[
+                                styles.checklistItemText,
+                                { color: colors.text, flex: 1 },
+                                item.completed && { textDecorationLine: 'line-through', color: colors.tabIconDefault, opacity: 0.7 }
+                              ]}>
+                                {item.text}
+                              </Text>
+                            </TouchableOpacity>
+                            <View style={styles.checklistActions}>
+                              <TouchableOpacity onPress={() => handleEditChecklistItem(item)} style={styles.checklistActionBtn}>
+                                <Edit2 size={16} color={colors.tabIconDefault} />
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={() => handleDeleteItineraryChecklistItem(item.id)} style={styles.checklistActionBtn}>
+                                <Trash2 size={16} color="#ef4444" />
+                              </TouchableOpacity>
                             </View>
                           </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    {(!selectedTrip?.itinerary || selectedTrip.itinerary.length === 0) && (
-                      <View style={styles.emptyItinerary}>
-                        <Compass size={48} color={colors.border} />
-                        <Text style={[styles.emptyItineraryText, { color: colors.tabIconDefault }]}>No activities planned yet.</Text>
-                      </View>
+                        ))}
+                        {(!selectedTrip?.checklist || selectedTrip.checklist.length === 0) && (
+                          <View style={styles.emptyChecklist}>
+                            <ListTodo size={48} color={colors.border} />
+                            <Text style={[styles.emptyChecklistText, { color: colors.tabIconDefault }]}>No tasks yet.</Text>
+                          </View>
+                        )}
+                      </>
                     )}
-                    <TouchableOpacity
-                      style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
-                      onPress={() => {
-                        setItineraryModalVisible(false);
-                        setShowChecklistInput(false);
-                      }}
-                    >
-                      <Text style={styles.saveBtnText}>Close Itinerary</Text>
-                    </TouchableOpacity>
                   </ScrollView>
                 </>
               )}
@@ -1129,104 +1205,7 @@ export default function TripsScreen() {
           borderColor={colors.border}
         />
 
-        {/* ── Trip Checklist Modal ── */}
-        <Modal
-          visible={checklistModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setChecklistModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={[styles.checklistModalPopup, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <View style={styles.checklistModalHeader}>
-                <View>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Trip Checklist</Text>
-                  <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]}>{selectedTrip?.name}</Text>
-                </View>
-                <TouchableOpacity onPress={() => setChecklistModalVisible(false)} activeOpacity={0.7}>
-                  <X size={24} color={colors.text} strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.quickAddChecklist, { borderColor: colors.border, marginTop: 12 }]}>
-                <TextInput
-                  style={[styles.quickAddInput, { color: colors.text }]}
-                  placeholder={editingChecklistItemId ? "Edit item..." : "Add to checklist..."}
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={itineraryChecklistInput}
-                  onChangeText={setItineraryChecklistInput}
-                  onSubmitEditing={handleAddItineraryChecklistItem}
-                />
-                <TouchableOpacity 
-                  onPress={handleAddItineraryChecklistItem}
-                  style={[styles.quickAddBtn, { backgroundColor: colors.tint }]}
-                  activeOpacity={0.9}
-                >
-                  {editingChecklistItemId ? (
-                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>SAVE</Text>
-                  ) : (
-                    <Plus size={24} color="#fff" strokeWidth={3} />
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                style={{ marginTop: 8 }}
-                contentContainerStyle={{ paddingBottom: 10 }}
-              >
-                {(selectedTrip?.checklist || []).map((item: any) => (
-                  <View key={item.id} style={[styles.checklistItemCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                    <TouchableOpacity
-                      style={styles.checklistItem}
-                      onPress={() => handleToggleChecklistItem(item.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkCircle, { borderColor: item.completed ? colors.tint : colors.border, backgroundColor: item.completed ? colors.tint : 'transparent' }]}>
-                        {item.completed && <CheckCircle2 size={14} color="#fff" />}
-                      </View>
-                      <Text style={[
-                        styles.checklistItemText,
-                        { color: colors.text, flex: 1 },
-                        item.completed && { textDecorationLine: 'line-through', color: colors.tabIconDefault, opacity: 0.7 }
-                      ]}>
-                        {item.text}
-                      </Text>
-                    </TouchableOpacity>
-                    <View style={styles.checklistActions}>
-                      <TouchableOpacity onPress={() => handleEditChecklistItem(item)} style={styles.checklistActionBtn}>
-                        <Edit2 size={16} color={colors.tabIconDefault} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteItineraryChecklistItem(item.id)} style={styles.checklistActionBtn}>
-                        <Trash2 size={16} color="#ef4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-                {(!selectedTrip?.checklist || selectedTrip.checklist.length === 0) && (
-                  <View style={styles.emptyChecklist}>
-                    <View style={[styles.emptyChecklistIcon, { backgroundColor: colors.tint + '10' }]}>
-                      <ListTodo size={40} color={colors.tint} />
-                    </View>
-                    <Text style={[styles.emptyChecklistText, { color: colors.text }]}>No tasks yet</Text>
-                    <Text style={[styles.emptyChecklistSub, { color: colors.tabIconDefault }]}>Add items you need to pack or do before your trip.</Text>
-                  </View>
-                )}
-              </ScrollView>
-
-              <TouchableOpacity
-                style={[styles.closeItineraryBtn, { backgroundColor: colors.tint, marginTop: 10, marginBottom: 36 }]}
-                onPress={() => setChecklistModalVisible(false)}
-              >
-                <Text style={styles.saveBtnText}>Done</Text>
-              </TouchableOpacity>
-            </KeyboardAvoidingView>
-          </View>
-        </Modal>
+        {/* Activity Time Picker */}
       </Modal>
 
       </View>
@@ -1347,6 +1326,14 @@ const styles = StyleSheet.create({
   quickAddChecklist: { flexDirection: 'row', alignItems: 'center', padding: 8, paddingLeft: 18, borderWidth: 1, borderRadius: 24, marginBottom: 16, gap: 12 },
   quickAddInput: { flex: 1, fontSize: 15, fontWeight: '700' },
   quickAddBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 2 },
+
+  // Split Section Styles
+  tabBar: { flexDirection: 'row', padding: 4, borderRadius: 16, marginBottom: 24, gap: 4 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12 },
+  tabText: { fontSize: 14, fontWeight: '700' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 },
+  miniAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  miniAddText: { fontSize: 12, fontWeight: '800' },
 
   checklistModalPopup: { width: '92%', height: '75%', borderRadius: 36, padding: 24, paddingBottom: 28, borderWidth: 1, elevation: 20, shadowOpacity: 0.25, shadowRadius: 25, shadowOffset: { width: 0, height: 10 } },
   checklistModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingHorizontal: 4 },
