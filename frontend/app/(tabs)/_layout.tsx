@@ -44,13 +44,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color }) => <MessageCircle size={22} stroke={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="trips"
         options={{
           title: 'Trips',
@@ -62,6 +55,13 @@ export default function TabLayout() {
         options={{
           title: 'Split',
           tabBarIcon: ({ color }) => <Receipt size={22} stroke={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: ({ color }) => <MessageCircle size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
