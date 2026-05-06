@@ -4,9 +4,10 @@ import { useColorScheme } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Home, Compass, MessageCircle, Music, Plane, User, Receipt } from 'lucide-react-native';
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function TabLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
 
   return (
     <Tabs
@@ -15,14 +16,14 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.tabIconDefault,
         tabBarStyle: {
           backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: 0,
+          elevation: 0,
           height: 85,
           paddingTop: 10,
           paddingBottom: 25,
         },
         tabBarLabelStyle: {
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: '700',
           marginBottom: 4,
         },

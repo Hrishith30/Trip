@@ -1,15 +1,14 @@
 import React, { useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated } from 'react-native';
-import { Colors } from '../../constants/Colors';
-import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User } from 'lucide-react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch } from 'react-native';
+import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { themeMode, setThemeMode, isDarkMode, colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const ProfileItem = ({ icon: Icon, label, onPress, color }: any) => (
@@ -69,6 +68,29 @@ export default function ProfileScreen() {
           <ProfileItem icon={User} label="Personal Information" />
           <ProfileItem icon={Bell} label="Notifications" />
           <ProfileItem icon={Shield} label="Privacy & Security" />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Appearance</Text>
+          <View style={[styles.themeSelector, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+            {(['light', 'auto', 'dark'] as const).map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[
+                  styles.themeOption,
+                  themeMode === mode && { backgroundColor: colors.card, elevation: 4, shadowOpacity: 0.1, shadowRadius: 10 }
+                ]}
+                onPress={() => setThemeMode(mode)}
+              >
+                <Text style={[
+                  styles.themeText,
+                  { color: themeMode === mode ? colors.tint : colors.tabIconDefault }
+                ]}>
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -197,5 +219,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 10,
     marginBottom: 40,
+  },
+  themeSelector: {
+    flexDirection: 'row',
+    padding: 6,
+    borderRadius: 18,
+    gap: 4,
+    marginTop: 8,
+  },
+  themeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

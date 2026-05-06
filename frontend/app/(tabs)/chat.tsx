@@ -27,9 +27,10 @@ const CHATS = [
   { id: '4', name: 'Sarah Miller', lastMsg: 'Lunch tomorrow?', time: '2:15 PM', unread: 1, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop', status: 'Online' },
 ];
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function ChatScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
   const [activeChat, setActiveChat] = useState<any>(null);
   const [inputText, setInputText] = useState('');
   const [isCalling, setIsCalling] = useState<'audio' | 'video' | null>(null);

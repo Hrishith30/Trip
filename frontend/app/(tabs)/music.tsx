@@ -13,9 +13,10 @@ const PLAYLISTS = [
   { id: '3', title: 'Parisian Cafe', tracks: 15, cover: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=300&auto=format&fit=crop' },
 ];
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function MusicScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 

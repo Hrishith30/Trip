@@ -24,9 +24,10 @@ const INITIAL_TRIPS = [
   }
 ];
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function TripsScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // State Management

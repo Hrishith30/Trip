@@ -8,9 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function ExploreScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { isDarkMode, colors } = useTheme();
   const mapRef = useRef<MapView>(null);
   const searchTimer = useRef<any>(null);
   
@@ -187,7 +188,7 @@ export default function ExploreScreen() {
           setShowSuggestions(false);
         }}
         initialRegion={region}
-        customMapStyle={colorScheme === 'dark' ? darkMapStyle : []}
+        customMapStyle={isDarkMode ? darkMapStyle : []}
       >
         {destination && (
           <Marker 
@@ -292,7 +293,22 @@ export default function ExploreScreen() {
   );
 }
 
-const darkMapStyle = [{ "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] }, { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] }, { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] }, { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }];
+const darkMapStyle = [
+  { "elementType": "geometry", "stylers": [{ "color": "#020617" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#020617" }] },
+  { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+  { "featureType": "landscape.man_made", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+  { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#020617" }] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#020617" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#334155" }] }
+];
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

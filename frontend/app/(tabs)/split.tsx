@@ -5,9 +5,10 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, Receipt, Users } from 'lucide-reac
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function SplitScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   return (

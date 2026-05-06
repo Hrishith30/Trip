@@ -8,10 +8,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+import { useTheme } from '../../context/ThemeContext';
+
 export default function Dashboard() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { colors } = useTheme();
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -25,7 +26,7 @@ export default function Dashboard() {
 
   const QuickAction = ({ icon: Icon, label, color, onPress }: any) => (
     <TouchableOpacity
-      style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.actionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
       onPress={onPress}
     >
       <View style={[styles.actionIcon, { backgroundColor: color + '15' }]}>
@@ -40,7 +41,8 @@ export default function Dashboard() {
       <PullToRefreshCar scrollY={scrollY} />
 
       <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
+        style={{ backgroundColor: colors.background }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
@@ -50,8 +52,8 @@ export default function Dashboard() {
       >
         {/* Cinematic Header */}
         <View style={styles.heroHeader}>
-          <View style={styles.headerTop}>
-            <View>
+          <View style={[styles.profileHub, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={styles.hubLeft}>
               <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>{getGreeting()}</Text>
               <Text style={[styles.name, { color: colors.text }]}>Hrishith!</Text>
             </View>
@@ -175,21 +177,22 @@ const StatCard = ({ icon: Icon, value, label, color, isDark }: any) => (
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
-  heroHeader: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: 20 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  greeting: { fontSize: 16, fontWeight: '600', letterSpacing: 0.5 },
-  name: { fontSize: 32, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
+  heroHeader: { paddingTop: 10, paddingHorizontal: 24, paddingBottom: 24 },
+  profileHub: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderRadius: 32, borderWidth: 2.5, elevation: 12, shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
+  hubLeft: { flex: 1 },
+  greeting: { fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
+  name: { fontSize: 28, fontWeight: '900', marginTop: 2, letterSpacing: -0.5 },
   profileBtn: { width: 54, height: 54, borderRadius: 20, padding: 2 },
   avatar: { width: '100%', height: '100%', borderRadius: 18 },
   statusIndicator: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
 
   statsScroll: { paddingLeft: 24, paddingRight: 24, marginBottom: 32 },
-  statBanner: { flexDirection: 'row', padding: 16, borderRadius: 28, elevation: 12, shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  statBanner: { flexDirection: 'row', padding: 16, borderRadius: 28 },
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   statNum: { fontSize: 18, fontWeight: '800' },
   statDesc: { fontSize: 10, fontWeight: '600', marginTop: 1 },
-  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 15 },
+  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(0,0,0,0.05)', marginHorizontal: 15 },
 
   sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
@@ -206,11 +209,11 @@ const styles = StyleSheet.create({
   heroAction: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
 
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, marginBottom: 32 },
-  actionCard: { width: (width - 60) / 2, margin: 6, padding: 20, borderRadius: 24, borderWidth: 1, alignItems: 'center', gap: 12 },
+  actionCard: { width: (width - 60) / 2, margin: 6, padding: 20, borderRadius: 24, alignItems: 'center', gap: 12, borderWidth: 2.5, elevation: 8, shadowOpacity: 0.06, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
   actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   actionLabel: { fontSize: 14, fontWeight: '700' },
 
-  activityContainer: { marginHorizontal: 24, borderRadius: 32, borderWidth: 1, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.02)' },
+  activityContainer: { marginHorizontal: 24, borderRadius: 32, overflow: 'hidden' },
   activityLog: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
   logIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   logMain: { flex: 1 },
