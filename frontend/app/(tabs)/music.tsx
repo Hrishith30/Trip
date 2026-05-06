@@ -1,35 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Pressable, PanResponder, Modal } from 'react-native';
+import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Pressable, PanResponder, Modal, Platform } from 'react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { Play, Pause, SkipForward, SkipBack, Repeat, Shuffle, ListMusic, Heart, Search, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { Audio } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
-const TRACKS = [
-  { id: '1', title: 'Wanderlust Anthem', artist: 'The Wayfarers', cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop', duration: 230 },
-  { id: '2', title: 'Mountain High', artist: 'Alpine Echo', cover: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=500&auto=format&fit=crop', duration: 185 },
-  { id: '3', title: 'City Lights', artist: 'Urban Nomad', cover: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=500&auto=format&fit=crop', duration: 210 },
-  { id: '4', title: 'Ocean Breeze', artist: 'Coastal Soul', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=300&auto=format&fit=crop', duration: 195 },
-];
+// Default placeholder if no tracks are loaded yet
+const PLACEHOLDER_TRACK = { 
+  id: 'loading', 
+  title: 'Loading music...', 
+  artist: 'Please wait', 
+  cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop', 
+  duration: 0 
+};
 
-const PLAYLISTS = [
-  { id: '1', title: 'Road Trip Vibes', tracks: 42, cover: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=300&auto=format&fit=crop' },
-  { id: '2', title: 'Beach Sunset', tracks: 28, cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=300&auto=format&fit=crop' },
-  { id: '3', title: 'Parisian Cafe', tracks: 15, cover: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=300&auto=format&fit=crop' },
-];
+const PLAYLISTS: any[] = [];
+
+const LANGUAGES = ['All', 'Telugu', 'Hindi', 'English', 'Punjabi', 'Tamil', 'Kannada'];
 
 export default function MusicScreen() {
   const { colors } = useTheme();
+  
+  // Your computer's IP from the logs
+  const API_URL = Platform.OS === 'web' ? 'http://localhost:8000' : 'http://192.168.1.218:8000';
+  
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('All');
+  const [loading, setLoading] = useState(false);
   
   // Player State
+  const [queue, setQueue] = useState<any[]>([]);
+  const [feedTracks, setFeedTracks] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [likedTrackIds, setLikedTrackIds] = useState<Set<string>>(new Set(['1']));
+  const sound = useRef<Audio.Sound | null>(null);
+  const [likedTracks, setLikedTracks] = useState<any[]>([]);
   const [likedSongsModalVisible, setLikedSongsModalVisible] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
@@ -38,34 +49,176 @@ export default function MusicScreen() {
   const [seekTime, setSeekTime] = useState(0);
   const [progressBarWidth, setProgressBarWidth] = useState(0);
   
-  const currentTrack = TRACKS[currentTrackIndex];
-  const isCurrentTrackLiked = likedTrackIds.has(currentTrack.id);
+  const currentTrack = queue.length > 0 && currentTrackIndex < queue.length
+    ? queue[currentTrackIndex] 
+    : (loading ? PLACEHOLDER_TRACK : { ...PLACEHOLDER_TRACK, title: 'No tracks found', artist: 'Try another search' });
+  const isCurrentTrackLiked = likedTracks.some(t => t.id === currentTrack.id);
 
-  const toggleLike = (id: string) => {
-    setLikedTrackIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  const fetchMusic = async (query?: string, language?: string, updateQueue: boolean = false) => {
+    setLoading(true);
+    const lang = language || selectedLanguage;
+    try {
+      // If no query, fetch latest for the language
+      const q = query 
+        ? (lang === 'All' ? query : `${query} ${lang}`) 
+        : (lang === 'All' ? 'latest trending songs' : `${lang} latest songs`);
+      const endpoint = `/search?q=${encodeURIComponent(q)}`;
+       const response = await fetch(`${API_URL}${endpoint}`);
+      const data = await response.json();
+      const results = data || [];
+      
+      if (query) {
+        setSearchResults(results);
+        setFeedTracks(results); // Update bottom list too
+      } else {
+        if (updateQueue || queue.length === 0) {
+          setQueue(results);
+          setCurrentTrackIndex(0);
+          setCurrentTime(0);
+        }
+        setFeedTracks(results);
+        setSearchResults([]);
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('Error fetching music:', error);
+      return [];
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMusic(undefined, undefined, true); // Initial load for default language
+  }, []);
+
+  const handleLanguageSelect = async (lang: string) => {
+    setSelectedLanguage(lang);
+    setSearchQuery('');
+    setSearchResults([]);
+    const results = await fetchMusic(undefined, lang, true);
+    if (results && results.length > 0) {
+      playSound(results[0].id);
+    }
+  };
+
+  // Sound Management
+  async function playSound(videoId: string) {
+    console.log(`[Music] Fetching stream for: ${videoId}`);
+    try {
+      if (sound.current) {
+        await sound.current.unloadAsync();
+      }
+
+      const response = await fetch(`${API_URL}/stream/${videoId}`);
+      const data = await response.json();
+      
+      if (!data.url) {
+        console.error('[Music] No stream URL returned from backend');
+        return;
+      }
+
+      console.log(`[Music] Playing stream: ${data.url.substring(0, 50)}...`);
+
+      const { sound: newSound, status } = await Audio.Sound.createAsync(
+        { uri: data.url },
+        { shouldPlay: true, volume: 1.0 },
+        onPlaybackStatusUpdate
+      );
+      
+      sound.current = newSound;
+      
+      // Explicitly call play to be certain on iOS
+      await newSound.playAsync();
+      
+      if (status.isLoaded) {
+        const duration = status.durationMillis ? (status.durationMillis / 1000).toFixed(1) : 'unknown';
+        console.log(`[Music] Sound loaded successfully. Duration: ${duration}s`);
+      }
+      
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('[Music] Error playing sound:', error);
+    }
+  }
+
+  async function togglePlayback() {
+    console.log(`[Music] Toggle playback. Current track: ${currentTrack.title}`);
+    if (!sound.current) {
+      if (currentTrack.id !== 'loading') {
+        await playSound(currentTrack.id);
+      }
+      return;
+    }
+
+    if (isPlaying) {
+      await sound.current.pauseAsync();
+      setIsPlaying(false);
+    } else {
+      await sound.current.playAsync();
+      setIsPlaying(true);
+    }
+  }
+
+  const onPlaybackStatusUpdate = (status: any) => {
+    if (status.isLoaded) {
+      if (!isSeeking) {
+        setCurrentTime(status.positionMillis / 1000);
+      }
+      if (status.didJustFinish) {
+        handleNext(true);
+      }
+    } else if (status.error) {
+      console.error(`[Music] Playback error: ${status.error}`);
+    }
+  };
+
+  useEffect(() => {
+    // Configure audio for iOS
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+
+    return () => {
+      if (sound.current) {
+        sound.current.unloadAsync();
+      }
+    };
+  }, []);
+
+  // Sync index change with sound
+  useEffect(() => {
+    if (isPlaying && queue.length > 0 && currentTrackIndex < queue.length) {
+      playSound(queue[currentTrackIndex].id);
+    }
+  }, [currentTrackIndex]);
+
+  const toggleLike = (track: any) => {
+    setLikedTracks((prev) => {
+      const exists = prev.find(t => t.id === track.id);
+      if (exists) return prev.filter(t => t.id !== track.id);
+      return [...prev, track];
     });
   };
 
-  // Progress simulation
+  // Live Search Effect (Debounced)
   useEffect(() => {
-    let interval: any;
-    if (isPlaying && !isSeeking) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= currentTrack.duration) {
-            handleNext(true);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
+    if (searchQuery.trim().length > 2) {
+      const delayDebounceFn = setTimeout(() => {
+        fetchMusic(searchQuery);
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
+    } else if (searchQuery.trim().length === 0) {
+      fetchMusic(); // Reset to trending/latest if cleared
     }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTrackIndex, isSeeking]);
+  }, [searchQuery]);
 
   const progressBarWidthRef = useRef(0);
   const durationRef = useRef(currentTrack.duration);
@@ -84,15 +237,15 @@ export default function MusicScreen() {
     }
 
     if (isShuffle) {
-      setCurrentTrackIndex(Math.floor(Math.random() * TRACKS.length));
+      setCurrentTrackIndex(Math.floor(Math.random() * queue.length));
     } else {
-      setCurrentTrackIndex((prev) => (prev + 1) % TRACKS.length);
+      setCurrentTrackIndex((prev) => (prev + 1) % queue.length);
     }
     setCurrentTime(0);
   };
 
   const handlePrev = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + TRACKS.length) % TRACKS.length);
+    setCurrentTrackIndex((prev) => (prev - 1 + queue.length) % queue.length);
     setCurrentTime(0);
   };
 
@@ -127,7 +280,7 @@ export default function MusicScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Travel Music</Text>
           <TouchableOpacity onPress={() => setLikedSongsModalVisible(true)}>
-            <Heart size={26} color={likedTrackIds.size > 0 ? '#ef4444' : colors.text} fill={likedTrackIds.size > 0 ? '#ef4444' : 'transparent'} />
+            <Heart size={26} color={likedTracks.length > 0 ? '#ef4444' : colors.text} fill={likedTracks.length > 0 ? '#ef4444' : 'transparent'} />
           </TouchableOpacity>
         </View>
 
@@ -141,6 +294,7 @@ export default function MusicScreen() {
               style={[styles.searchInput, { color: colors.text }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              returnKeyType="search"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -148,6 +302,69 @@ export default function MusicScreen() {
               </TouchableOpacity>
             )}
           </View>
+          
+          {/* Floating Search Results */}
+          {searchResults.length > 0 && (
+            <View style={[styles.floatingResults, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
+                {searchResults.map((track, index) => {
+                  const isLiked = likedTracks.some(t => t.id === track.id);
+                  return (
+                  <TouchableOpacity 
+                    key={track.id} 
+                    style={styles.floatingResultItem}
+                    onPress={() => {
+                      const newQueue = [track, ...searchResults.filter(t => t.id !== track.id)];
+                      setQueue(newQueue);
+                      setCurrentTrackIndex(0);
+                      setCurrentTime(0);
+                      playSound(track.id);
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    }}
+                  >
+                    <Image source={{ uri: track.cover }} style={styles.floatingThumb} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.floatingTitle, { color: colors.text }]} numberOfLines={1}>{track.title}</Text>
+                      <Text style={[styles.floatingArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>{track.artist}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={(e) => { 
+                        e.stopPropagation(); 
+                        toggleLike(track); 
+                      }} 
+                      style={{ padding: 4 }}
+                    >
+                      <Heart size={20} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                )})}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* Language Filters */}
+        <View style={styles.languageContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languageRow}>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity 
+                key={lang} 
+                style={[
+                  styles.languageChip, 
+                  { backgroundColor: selectedLanguage === lang ? colors.tint : colors.card, borderColor: colors.border }
+                ]}
+                onPress={() => handleLanguageSelect(lang)}
+              >
+                <Text style={[
+                  styles.languageText, 
+                  { color: selectedLanguage === lang ? '#fff' : colors.text }
+                ]}>
+                  {lang}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Featured Player Card */}
@@ -160,7 +377,7 @@ export default function MusicScreen() {
                 {currentTrack.artist}  •  {formatTime(currentTime)} / {formatTime(currentTrack.duration)}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => toggleLike(currentTrack.id)}>
+            <TouchableOpacity onPress={() => toggleLike(currentTrack)}>
               <Heart size={26} fill={isCurrentTrackLiked ? '#ef4444' : 'transparent'} color={isCurrentTrackLiked ? '#ef4444' : colors.tabIconDefault} />
             </TouchableOpacity>
           </View>
@@ -176,7 +393,7 @@ export default function MusicScreen() {
             
             <TouchableOpacity 
               style={[styles.playBtn, { backgroundColor: colors.tint }]}
-              onPress={() => setIsPlaying(!isPlaying)}
+              onPress={togglePlayback}
             >
               {isPlaying ? (
                 <Pause size={28} fill="#fff" color="#fff" />
@@ -195,20 +412,67 @@ export default function MusicScreen() {
           </View>
         </View>
 
-        {/* Playlists */}
+        {/* Playlists (Now Search Results / Latest Hits) */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {searchQuery ? 'Search Results' : 'Your Playlists'}
+            {searchQuery ? 'Search Results' : `${selectedLanguage} Latest Hits`}
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playlistRow}>
-            {filteredPlaylists.map((p) => (
-              <TouchableOpacity key={p.id} style={styles.playlistCard}>
-                <Image source={{ uri: p.cover }} style={styles.playlistCover} />
-                <Text style={[styles.playlistTitle, { color: colors.text }]}>{p.title}</Text>
-                <Text style={[styles.playlistTracks, { color: colors.tabIconDefault }]}>{p.tracks} Tracks</Text>
+          <View style={styles.trackList}>
+            {feedTracks.map((track, index) => {
+              const isActive = currentTrack.id === track.id;
+              const isLiked = likedTracks.some(t => t.id === track.id);
+              return (
+              <TouchableOpacity 
+                key={`${track.id}-${index}`} 
+                style={[
+                  styles.trackItem, 
+                  { backgroundColor: isActive ? colors.card : 'transparent' }
+                ]}
+                onPress={() => {
+                  const newQueue = [track, ...feedTracks.filter(t => t.id !== track.id)];
+                  setQueue(newQueue);
+                  setCurrentTrackIndex(0);
+                  setCurrentTime(0);
+                  playSound(track.id);
+                }}
+              >
+                <Image source={{ uri: track.cover }} style={styles.trackThumb} />
+                <View style={styles.trackDetails}>
+                  <Text 
+                    style={[
+                      styles.trackListTitle, 
+                      { color: isActive ? colors.tint : colors.text }
+                    ]} 
+                    numberOfLines={1}
+                  >
+                    {track.title}
+                  </Text>
+                  <Text style={[styles.trackListArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>
+                    {track.artist}
+                  </Text>
+                </View>
+                {isActive && isPlaying && (
+                  <View style={styles.playingIndicator}>
+                    <View style={[styles.playingBar, { height: 12, backgroundColor: colors.tint }]} />
+                    <View style={[styles.playingBar, { height: 18, backgroundColor: colors.tint }]} />
+                    <View style={[styles.playingBar, { height: 10, backgroundColor: colors.tint }]} />
+                  </View>
+                )}
+                <TouchableOpacity 
+                  onPress={(e) => { 
+                    e.stopPropagation(); 
+                    toggleLike(track); 
+                  }} 
+                  style={{ padding: 8, marginLeft: 8 }}
+                >
+                  <Heart size={22} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                </TouchableOpacity>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            )})}
+            {loading && feedTracks.length === 0 && (
+              <Text style={[styles.loadingText, { color: colors.tabIconDefault }]}>Finding the perfect tracks...</Text>
+            )}
+          </View>
         </View>
       </Animated.ScrollView>
       {/* Liked Songs Modal */}
@@ -233,16 +497,17 @@ export default function MusicScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              {TRACKS.filter(t => likedTrackIds.has(t.id)).length > 0 ? (
-                TRACKS.filter(t => likedTrackIds.has(t.id)).map((track) => (
+              {likedTracks.length > 0 ? (
+                likedTracks.map((track) => (
                   <TouchableOpacity 
                     key={track.id} 
                     style={styles.likedTrackItem}
                     onPress={() => {
-                      const idx = TRACKS.findIndex(t => t.id === track.id);
-                      setCurrentTrackIndex(idx);
+                      const newQueue = [track, ...likedTracks.filter(t => t.id !== track.id)];
+                      setQueue(newQueue);
+                      setCurrentTrackIndex(0);
                       setCurrentTime(0);
-                      setIsPlaying(true);
+                      playSound(track.id);
                       setLikedSongsModalVisible(false);
                     }}
                   >
@@ -251,7 +516,7 @@ export default function MusicScreen() {
                       <Text style={[styles.likedTrackTitle, { color: colors.text }]}>{track.title}</Text>
                       <Text style={[styles.likedTrackArtist, { color: colors.tabIconDefault }]}>{track.artist}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => toggleLike(track.id)} style={{ padding: 8 }}>
+                    <TouchableOpacity onPress={() => toggleLike(track)} style={{ padding: 8 }}>
                       <Heart size={20} color="#ef4444" fill="#ef4444" />
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -277,6 +542,10 @@ const styles = StyleSheet.create({
   searchContainer: { paddingHorizontal: 20, marginBottom: 10 },
   searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 15, paddingHorizontal: 15, borderWidth: 1 },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16, fontWeight: '500' },
+  languageContainer: { marginBottom: 15 },
+  languageRow: { paddingHorizontal: 20, gap: 10 },
+  languageChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
+  languageText: { fontSize: 14, fontWeight: '700' },
   playerCard: { margin: 20, padding: 24, borderRadius: 32, borderWidth: 1, elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15 },
   coverArt: { width: '100%', height: width - 120, borderRadius: 24, marginBottom: 24 },
   trackInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
@@ -299,6 +568,20 @@ const styles = StyleSheet.create({
   playlistCover: { width: 140, height: 140, borderRadius: 20, marginBottom: 10 },
   playlistTitle: { fontSize: 15, fontWeight: '700' },
   playlistTracks: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  trackList: { paddingHorizontal: 20 },
+  trackItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginBottom: 8, gap: 12 },
+  trackThumb: { width: 50, height: 50, borderRadius: 10 },
+  trackDetails: { flex: 1 },
+  trackListTitle: { fontSize: 16, fontWeight: '700' },
+  trackListArtist: { fontSize: 13, fontWeight: '500', marginTop: 2 },
+  playingIndicator: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 20, paddingBottom: 2 },
+  playingBar: { width: 3, borderRadius: 1.5 },
+  loadingText: { textAlign: 'center', marginTop: 20, fontSize: 15, fontWeight: '600' },
+  floatingResults: { position: 'absolute', top: 60, left: 20, right: 20, borderRadius: 20, borderWidth: 1, zIndex: 100, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, padding: 8 },
+  floatingResultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12 },
+  floatingThumb: { width: 40, height: 40, borderRadius: 8 },
+  floatingTitle: { fontSize: 14, fontWeight: '700' },
+  floatingArtist: { fontSize: 12, fontWeight: '500' },
   // Liked Songs Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%' },
