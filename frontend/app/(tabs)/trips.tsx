@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles } from 'lucide-react-native';
+import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -34,6 +34,8 @@ export default function TripsScreen() {
   const [trips, setTrips] = useState(INITIAL_TRIPS);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTrip, setEditingTrip] = useState<any>(null);
+  const [itineraryModalVisible, setItineraryModalVisible] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<any>(null);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -59,6 +61,11 @@ export default function TripsScreen() {
       });
     }
     setModalVisible(true);
+  };
+
+  const handleOpenItinerary = (trip: any) => {
+    setSelectedTrip(trip);
+    setItineraryModalVisible(true);
   };
 
   const handleSaveTrip = () => {
@@ -101,7 +108,7 @@ export default function TripsScreen() {
             <Text style={[styles.tripStatus, { color: colors.tint }]}>{item.status}</Text>
             <Text style={[styles.tripName, { color: colors.text }]}>{item.name}</Text>
           </View>
-          <View style={styles.actions}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
             <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenModal(item)}>
               <Edit2 size={18} color={colors.tabIconDefault} />
             </TouchableOpacity>
@@ -121,7 +128,10 @@ export default function TripsScreen() {
           <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>{item.date}</Text>
         </View>
 
-        <TouchableOpacity style={[styles.detailsButton, { borderTopColor: colors.border }]}>
+        <TouchableOpacity 
+          style={[styles.detailsButton, { borderTopColor: colors.border }]}
+          onPress={() => handleOpenItinerary(item)}
+        >
           <Text style={[styles.detailsText, { color: colors.text }]}>View Itinerary</Text>
           <ArrowRight size={16} stroke={colors.text} />
         </TouchableOpacity>
@@ -218,22 +228,55 @@ export default function TripsScreen() {
                 />
               </View>
 
-              <View style={styles.formItem}>
-                <Text style={[styles.label, { color: colors.tabIconDefault }]}>Cover Image URL</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  placeholder="https://..."
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={formData.image}
-                  onChangeText={(text) => setFormData(f => ({ ...f, image: text }))}
-                />
-              </View>
-
               <TouchableOpacity 
                 style={[styles.saveBtn, { backgroundColor: colors.tint }]}
                 onPress={handleSaveTrip}
               >
                 <Text style={styles.saveBtnText}>{editingTrip ? 'Update Journey' : 'Create Adventure'}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Itinerary Modal */}
+      <Modal visible={itineraryModalVisible} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.itineraryContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedTrip?.name || 'Itinerary'}</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]}>Complete Schedule</Text>
+              </View>
+              <TouchableOpacity onPress={() => setItineraryModalVisible(false)} style={styles.closeBtn}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { time: '09:00 AM', event: 'Morning Flight', icon: Plane, desc: 'Flight TK123 to Zermatt' },
+                { time: '01:00 PM', event: 'Hotel Check-in', icon: MapPin, desc: 'Alpine Resort & Spa' },
+                { time: '04:00 PM', event: 'Local Exploration', icon: Compass, desc: 'Visit the Old Village' },
+                { time: '08:00 PM', event: 'Welcome Dinner', icon: Receipt, desc: 'Traditional Swiss Fondu' }
+              ].map((item, idx) => (
+                <View key={idx} style={styles.itineraryItem}>
+                  <View style={styles.timeline}>
+                    <View style={[styles.timelineDot, { backgroundColor: colors.tint }]} />
+                    {idx !== 3 && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
+                  </View>
+                  <View style={styles.itineraryText}>
+                    <Text style={[styles.itineraryTime, { color: colors.tabIconDefault }]}>{item.time}</Text>
+                    <Text style={[styles.itineraryEvent, { color: colors.text }]}>{item.event}</Text>
+                    <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity 
+                style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
+                onPress={() => setItineraryModalVisible(false)}
+              >
+                <Text style={styles.saveBtnText}>Got it!</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -283,4 +326,17 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   emptyBtn: { paddingHorizontal: 32, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 6 },
   emptyBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  // Itinerary Styles
+  itineraryContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, height: '85%' },
+  modalSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  itineraryItem: { flexDirection: 'row', marginBottom: 24 },
+  timeline: { alignItems: 'center', marginRight: 20, width: 20 },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, zIndex: 1 },
+  timelineLine: { width: 2, flex: 1, marginTop: 4, marginBottom: -20 },
+  itineraryText: { flex: 1 },
+  itineraryTime: { fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase' },
+  itineraryEvent: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
+  itineraryDesc: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
+  closeItineraryBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 24, marginBottom: 40, elevation: 8 },
 });

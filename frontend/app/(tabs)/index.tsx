@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
   heroHeader: { paddingTop: 10, paddingHorizontal: 24, paddingBottom: 24 },
-  profileHub: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderRadius: 32, borderWidth: 2.5, elevation: 12, shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
+  profileHub: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderRadius: 32, borderWidth: 1.5, elevation: 12, shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
   hubLeft: { flex: 1 },
   greeting: { fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
   name: { fontSize: 28, fontWeight: '900', marginTop: 2, letterSpacing: -0.5 },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   heroAction: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
 
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, marginBottom: 32 },
-  actionCard: { width: (width - 60) / 2, margin: 6, padding: 20, borderRadius: 24, alignItems: 'center', gap: 12, borderWidth: 2.5, elevation: 8, shadowOpacity: 0.06, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  actionCard: { width: (width - 60) / 2, margin: 6, padding: 20, borderRadius: 24, alignItems: 'center', gap: 12, borderWidth: 1.5, elevation: 8, shadowOpacity: 0.06, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
   actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   actionLabel: { fontSize: 14, fontWeight: '700' },
 
