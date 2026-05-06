@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch } from 'react-native';
 import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { themeMode, setThemeMode, isDarkMode, colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
   const ProfileItem = ({ icon: Icon, label, onPress, color }: any) => (
     <TouchableOpacity 
@@ -36,6 +45,11 @@ export default function ProfileScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+            handleRefresh();
+          }
+        }}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >

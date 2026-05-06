@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, useColorScheme, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, useColorScheme, Image, TouchableOpacity, Animated, Dimensions, ScrollView } from 'react-native';
+import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { Colors } from '../../constants/Colors';
 import { Play, SkipForward, SkipBack, Repeat, Shuffle, ListMusic, Heart, Search, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,14 +20,37 @@ export default function MusicScreen() {
   const { colors } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
   const filteredPlaylists = PLAYLISTS.filter(p => 
     p.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <PullToRefreshCar scrollY={scrollY} />
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+            handleRefresh();
+          }
+        }}
+        scrollEventThrottle={16}
+      >
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Travel Music</Text>
           <TouchableOpacity>
@@ -113,7 +137,7 @@ export default function MusicScreen() {
             )}
           </ScrollView>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }

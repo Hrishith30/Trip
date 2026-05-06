@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Receipt, Users } from 'lucide-react-native';
@@ -10,6 +10,15 @@ import { useTheme } from '../../context/ThemeContext';
 export default function SplitScreen() {
   const { colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -21,6 +30,11 @@ export default function SplitScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+            handleRefresh();
+          }
+        }}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >

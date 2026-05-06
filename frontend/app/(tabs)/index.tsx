@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
@@ -15,6 +15,15 @@ export default function Dashboard() {
   const { colors } = useTheme();
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -47,6 +56,11 @@ export default function Dashboard() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+            handleRefresh();
+          }
+        }}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >

@@ -11,8 +11,8 @@ const INITIAL_TRIPS = [
     id: '1',
     name: 'Swiss Alps Adventure',
     location: 'Zermatt, Switzerland',
-    startDate: 'Jul 15, 2026',
-    endDate: 'Jul 22, 2026',
+    startDate: '2026-07-15',
+    endDate: '2026-07-22',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
   },
@@ -20,8 +20,8 @@ const INITIAL_TRIPS = [
     id: '2',
     name: 'Paris City Break',
     location: 'Paris, France',
-    startDate: 'Aug 10, 2026',
-    endDate: 'Aug 14, 2026',
+    startDate: '2026-08-10',
+    endDate: '2026-08-14',
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
   }
@@ -30,7 +30,7 @@ const INITIAL_TRIPS = [
 import { useTheme } from '../../context/ThemeContext';
 
 export default function TripsScreen() {
-  const { colors } = useTheme();
+  const { isDarkMode, colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // State Management
@@ -42,10 +42,13 @@ export default function TripsScreen() {
   const [locationResults, setLocationResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickingDateType, setPickingDateType] = useState<'start' | 'end'>('start');
+  const [tempDate, setTempDate] = useState(new Date());
+  const [minPickerDate, setMinPickerDate] = useState(new Date());
   const searchTimer = useRef<any>(null);
-  
+
   // Form State
   const [formData, setFormData] = useState({
     name: '',
@@ -67,7 +70,7 @@ export default function TripsScreen() {
       const response = await fetch(
         `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=10`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.features) {
@@ -92,7 +95,7 @@ export default function TripsScreen() {
   const handleLocationChange = (text: string) => {
     setFormData(f => ({ ...f, location: text }));
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    
+
     if (text.length > 2) {
       searchTimer.current = setTimeout(() => {
         performLocationSearch(text);
@@ -105,35 +108,109 @@ export default function TripsScreen() {
   const selectLocation = (item: any) => {
     setLoadingImage(true);
     const cleanLocation = item.title.split(',')[0].trim();
-    setFormData(f => ({ 
-      ...f, 
+    setFormData(f => ({
+      ...f,
       location: `${item.title}${item.subtitle ? ', ' + item.subtitle : ''}`,
       image: `https://loremflickr.com/800/600/${encodeURIComponent(cleanLocation)}/all?random=${Date.now()}`
     }));
     setLocationResults([]);
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const formatted = selectedDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-      if (pickingDateType === 'start') {
-        setFormData(f => ({ ...f, startDate: formatted }));
-      } else {
-        setFormData(f => ({ ...f, endDate: formatted }));
+  const safeDate = (dateStr: any) => {
+    if (!dateStr) return null;
+    // Handle YYYY-MM-DD format specifically to avoid UTC shift
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        return new Date(year, month, day);
       }
     }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'TBD';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      setTempDate(selectedDate);
+
+      if (Platform.OS === 'android') {
+        confirmDate(selectedDate);
+      }
+    }
+  };
+
+  const confirmDate = (dateToConfirm: Date) => {
+    // Store as local YYYY-MM-DD string to avoid UTC shifting
+    const year = dateToConfirm.getFullYear();
+    const month = String(dateToConfirm.getMonth() + 1).padStart(2, '0');
+    const day = String(dateToConfirm.getDate()).padStart(2, '0');
+    const isoString = `${year}-${month}-${day}`;
+
+    if (pickingDateType === 'start') {
+      setFormData(f => ({ ...f, startDate: isoString, endDate: '' }));
+    } else {
+      setFormData(f => ({ ...f, endDate: isoString }));
+    }
+    setShowDatePicker(false);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data fetch
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
   };
 
   const handleOpenDatePicker = (type: 'start' | 'end') => {
     Keyboard.dismiss();
     setLocationResults([]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let initialDate = new Date(today);
+    let minDate = new Date(today);
+
+    const existingDateStr = type === 'start' ? formData.startDate : formData.endDate;
+
+    if (existingDateStr) {
+      const parsed = safeDate(existingDateStr);
+      if (parsed) {
+        initialDate = parsed;
+      }
+    }
+
+    // 2. Ensure return date isn't before start date
+    if (type === 'end' && formData.startDate) {
+      const start = safeDate(formData.startDate);
+      if (start) {
+        minDate = start;
+        if (initialDate < start) {
+          initialDate = new Date(start);
+        }
+      }
+    }
+
     setPickingDateType(type);
-    setShowDatePicker(true);
+    setTempDate(initialDate);
+    setMinPickerDate(minDate);
+
+    setTimeout(() => {
+      setShowDatePicker(true);
+    }, 150);
   };
 
   const handleOpenModal = (trip: any = null) => {
@@ -142,10 +219,12 @@ export default function TripsScreen() {
       setFormData({ ...trip });
     } else {
       setEditingTrip(null);
+      const now = new Date();
+      const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       setFormData({
         name: '',
         location: '',
-        startDate: '',
+        startDate: todayISO,
         endDate: '',
         image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
         status: 'Upcoming'
@@ -185,9 +264,11 @@ export default function TripsScreen() {
       'Are you sure you want to remove this adventure?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          setTrips(prev => prev.filter(t => t.id !== id));
-        }}
+        {
+          text: 'Delete', style: 'destructive', onPress: () => {
+            setTrips(prev => prev.filter(t => t.id !== id));
+          }
+        }
       ]
     );
   };
@@ -210,20 +291,22 @@ export default function TripsScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <View style={styles.infoRow}>
           <MapPin size={14} stroke={colors.tabIconDefault} />
           <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>{item.location}</Text>
         </View>
-        
+
         <View style={styles.infoRow}>
           <Calendar size={14} stroke={colors.tabIconDefault} />
           <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            {item.startDate && item.endDate ? `${item.startDate} - ${item.endDate}` : item.date || 'TBD'}
+            {item.startDate && item.endDate
+              ? `${formatDate(safeDate(item.startDate))} - ${formatDate(safeDate(item.endDate))}`
+              : item.date || 'TBD'}
           </Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.detailsButton, { borderTopColor: colors.border }]}
           onPress={() => handleOpenItinerary(item)}
         >
@@ -237,7 +320,7 @@ export default function TripsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
-      
+
       <Animated.FlatList
         data={trips}
         renderItem={renderTrip}
@@ -247,6 +330,11 @@ export default function TripsScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onScrollEndDrag={(e) => {
+          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+            handleRefresh();
+          }
+        }}
         scrollEventThrottle={16}
         ListHeaderComponent={() => (
           <View style={styles.header}>
@@ -269,7 +357,7 @@ export default function TripsScreen() {
       />
 
       {/* FAB */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.tint, shadowColor: colors.tint }]}
         onPress={() => handleOpenModal()}
       >
@@ -278,7 +366,7 @@ export default function TripsScreen() {
 
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalBackdrop}
         >
@@ -295,9 +383,9 @@ export default function TripsScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {formData.image && (
                 <View style={styles.modalImageContainer}>
-                  <Image 
-                    source={{ uri: formData.image }} 
-                    style={styles.modalImage} 
+                  <Image
+                    source={{ uri: formData.image }}
+                    style={styles.modalImage}
                     resizeMode="cover"
                     onLoadStart={() => setLoadingImage(true)}
                     onLoadEnd={() => setLoadingImage(false)}
@@ -347,8 +435,8 @@ export default function TripsScreen() {
                 {locationResults.length > 0 && (
                   <View style={[styles.resultsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     {locationResults.map((item, idx) => (
-                      <TouchableOpacity 
-                        key={idx} 
+                      <TouchableOpacity
+                        key={idx}
                         style={[styles.resultItem, { borderBottomColor: idx === locationResults.length - 1 ? 'transparent' : colors.border }]}
                         onPress={() => selectLocation(item)}
                       >
@@ -370,43 +458,62 @@ export default function TripsScreen() {
                 <View style={styles.dateRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.dateSubLabel, { color: colors.tabIconDefault }]}>From</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.input, { borderColor: colors.border, justifyContent: 'center' }]}
                       onPress={() => handleOpenDatePicker('start')}
                     >
                       <Text style={{ color: formData.startDate ? colors.text : colors.tabIconDefault, fontSize: 14, fontWeight: '600' }}>
-                        {formData.startDate || 'Departure'}
+                        {formData.startDate ? formatDate(safeDate(formData.startDate)) : 'Departure'}
                       </Text>
                     </TouchableOpacity>
                   </View>
                   <View style={{ width: 12 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.dateSubLabel, { color: colors.tabIconDefault }]}>To</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.input, { borderColor: colors.border, justifyContent: 'center' }]}
                       onPress={() => handleOpenDatePicker('end')}
                     >
                       <Text style={{ color: formData.endDate ? colors.text : colors.tabIconDefault, fontSize: 14, fontWeight: '600' }}>
-                        {formData.endDate || 'Return'}
+                        {formData.endDate ? formatDate(safeDate(formData.endDate)) : 'Return'}
                       </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={
-                      pickingDateType === 'start' 
-                        ? (formData.startDate ? new Date(formData.startDate) : new Date())
-                        : (formData.endDate ? new Date(formData.endDate) : new Date())
-                    }
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onDateChange}
-                  />
-                )}
+
+                {/* Pop-up Date Picker Modal */}
+                <Modal visible={showDatePicker} transparent animationType="fade">
+                  <TouchableOpacity
+                    style={styles.datePickerOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <View style={styles.pickerHeader}>
+                        <Text style={[styles.pickerTitle, { color: colors.text }]}>
+                          Select {pickingDateType === 'start' ? 'Departure' : 'Return'}
+                        </Text>
+                        <TouchableOpacity onPress={() => confirmDate(tempDate)}>
+                          <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        key={`${pickingDateType}-${minPickerDate.getTime()}`}
+                        value={tempDate}
+                        mode="date"
+                        display="inline"
+                        minimumDate={pickingDateType === 'start' ? new Date() : minPickerDate}
+                        themeVariant={isDarkMode ? 'dark' : 'light'}
+                        accentColor={colors.tint}
+                        onChange={onDateChange}
+                        style={{ width: '100%', alignSelf: 'center' }}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.saveBtn, { backgroundColor: colors.tint }]}
                 onPress={handleSaveTrip}
               >
@@ -450,7 +557,7 @@ export default function TripsScreen() {
                   </View>
                 </View>
               ))}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
                 onPress={() => setItineraryModalVisible(false)}
               >
@@ -484,7 +591,7 @@ const styles = StyleSheet.create({
   detailsButton: { marginTop: 20, paddingTop: 20, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   detailsText: { fontSize: 15, fontWeight: '800' },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 10, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-  
+
   // Modal Styles
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, maxHeight: '85%' },
@@ -528,6 +635,11 @@ const styles = StyleSheet.create({
 
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
   dateSubLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  datePickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  datePickerContainer: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40, borderWidth: 1, borderBottomWidth: 0 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  pickerTitle: { fontSize: 18, fontWeight: '800' },
 
   modalImageContainer: { height: 200, width: '100%', borderRadius: 24, overflow: 'hidden', marginBottom: 24, position: 'relative' },
   modalImage: { width: '100%', height: '100%' },

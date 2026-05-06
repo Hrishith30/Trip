@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, useColorScheme, FlatList, TouchableOpacity, Image, TextInput, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
-import { Colors } from '../../constants/Colors';
 import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon, MapPin, Phone, Video, MoreVertical, Mic, CheckCheck } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
