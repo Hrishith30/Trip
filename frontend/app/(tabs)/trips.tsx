@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
@@ -10,7 +11,8 @@ const INITIAL_TRIPS = [
     id: '1',
     name: 'Swiss Alps Adventure',
     location: 'Zermatt, Switzerland',
-    date: 'July 15 - 22, 2026',
+    startDate: 'Jul 15, 2026',
+    endDate: 'Jul 22, 2026',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
   },
@@ -18,7 +20,8 @@ const INITIAL_TRIPS = [
     id: '2',
     name: 'Paris City Break',
     location: 'Paris, France',
-    date: 'August 10 - 14, 2026',
+    startDate: 'Aug 10, 2026',
+    endDate: 'Aug 14, 2026',
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
   }
@@ -36,15 +39,95 @@ export default function TripsScreen() {
   const [editingTrip, setEditingTrip] = useState<any>(null);
   const [itineraryModalVisible, setItineraryModalVisible] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
+  const [locationResults, setLocationResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickingDateType, setPickingDateType] = useState<'start' | 'end'>('start');
+  const searchTimer = useRef<any>(null);
   
   // Form State
   const [formData, setFormData] = useState({
     name: '',
     location: '',
-    date: '',
+    startDate: '',
+    endDate: '',
     image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming'
   });
+
+  const performLocationSearch = async (query: string) => {
+    if (query.length <= 2) {
+      setLocationResults([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=10`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.features) {
+          const formatted = data.features.map((item: any) => {
+            const props = item.properties;
+            const addressParts = [props.city, props.state, props.country].filter(Boolean);
+            return {
+              title: props.name || props.street || props.city || "Unknown",
+              subtitle: addressParts.join(', ')
+            };
+          });
+          setLocationResults(formatted);
+        }
+      }
+    } catch (error) {
+      console.log('Search error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLocationChange = (text: string) => {
+    setFormData(f => ({ ...f, location: text }));
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    
+    if (text.length > 2) {
+      searchTimer.current = setTimeout(() => {
+        performLocationSearch(text);
+      }, 600);
+    } else {
+      setLocationResults([]);
+    }
+  };
+
+  const selectLocation = (item: any) => {
+    setFormData(f => ({ ...f, location: `${item.title}${item.subtitle ? ', ' + item.subtitle : ''}` }));
+    setLocationResults([]);
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      const formatted = selectedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      if (pickingDateType === 'start') {
+        setFormData(f => ({ ...f, startDate: formatted }));
+      } else {
+        setFormData(f => ({ ...f, endDate: formatted }));
+      }
+    }
+  };
+
+  const handleOpenDatePicker = (type: 'start' | 'end') => {
+    Keyboard.dismiss();
+    setLocationResults([]);
+    setPickingDateType(type);
+    setShowDatePicker(true);
+  };
 
   const handleOpenModal = (trip: any = null) => {
     if (trip) {
@@ -55,11 +138,14 @@ export default function TripsScreen() {
       setFormData({
         name: '',
         location: '',
-        date: '',
+        startDate: '',
+        endDate: '',
         image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
         status: 'Upcoming'
       });
     }
+    setLocationResults([]);
+    setShowDatePicker(false);
     setModalVisible(true);
   };
 
@@ -125,7 +211,9 @@ export default function TripsScreen() {
         
         <View style={styles.infoRow}>
           <Calendar size={14} stroke={colors.tabIconDefault} />
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>{item.date}</Text>
+          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
+            {item.startDate && item.endDate ? `${item.startDate} - ${item.endDate}` : item.date || 'TBD'}
+          </Text>
         </View>
 
         <TouchableOpacity 
@@ -183,7 +271,10 @@ export default function TripsScreen() {
 
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalBackdrop}
+        >
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
@@ -203,29 +294,87 @@ export default function TripsScreen() {
                   placeholderTextColor={colors.tabIconDefault}
                   value={formData.name}
                   onChangeText={(text) => setFormData(f => ({ ...f, name: text }))}
+                  onFocus={() => setShowDatePicker(false)}
                 />
               </View>
 
               <View style={styles.formItem}>
                 <Text style={[styles.label, { color: colors.tabIconDefault }]}>Location</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  placeholder="e.g. Tokyo, Japan"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={formData.location}
-                  onChangeText={(text) => setFormData(f => ({ ...f, location: text }))}
-                />
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                    placeholder="e.g. Tokyo, Japan"
+                    placeholderTextColor={colors.tabIconDefault}
+                    value={formData.location}
+                    onChangeText={handleLocationChange}
+                    onFocus={() => setShowDatePicker(false)}
+                  />
+                  {loading && (
+                    <View style={styles.loadingWrapper}>
+                      <ActivityIndicator size="small" color={colors.tint} />
+                    </View>
+                  )}
+                </View>
+                {locationResults.length > 0 && (
+                  <View style={[styles.resultsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    {locationResults.map((item, idx) => (
+                      <TouchableOpacity 
+                        key={idx} 
+                        style={[styles.resultItem, { borderBottomColor: idx === locationResults.length - 1 ? 'transparent' : colors.border }]}
+                        onPress={() => selectLocation(item)}
+                      >
+                        <View style={[styles.resultIcon, { backgroundColor: colors.tint + '15' }]}>
+                          <MapPin size={16} color={colors.tint} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.resultTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
+                          {item.subtitle && <Text style={[styles.resultSub, { color: colors.tabIconDefault }]} numberOfLines={1}>{item.subtitle}</Text>}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <View style={styles.formItem}>
-                <Text style={[styles.label, { color: colors.tabIconDefault }]}>Dates</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  placeholder="e.g. July 15 - 22, 2026"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={formData.date}
-                  onChangeText={(text) => setFormData(f => ({ ...f, date: text }))}
-                />
+                <Text style={[styles.label, { color: colors.tabIconDefault }]}>Trip Duration</Text>
+                <View style={styles.dateRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dateSubLabel, { color: colors.tabIconDefault }]}>From</Text>
+                    <TouchableOpacity 
+                      style={[styles.input, { borderColor: colors.border, justifyContent: 'center' }]}
+                      onPress={() => handleOpenDatePicker('start')}
+                    >
+                      <Text style={{ color: formData.startDate ? colors.text : colors.tabIconDefault, fontSize: 14, fontWeight: '600' }}>
+                        {formData.startDate || 'Departure'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ width: 12 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dateSubLabel, { color: colors.tabIconDefault }]}>To</Text>
+                    <TouchableOpacity 
+                      style={[styles.input, { borderColor: colors.border, justifyContent: 'center' }]}
+                      onPress={() => handleOpenDatePicker('end')}
+                    >
+                      <Text style={{ color: formData.endDate ? colors.text : colors.tabIconDefault, fontSize: 14, fontWeight: '600' }}>
+                        {formData.endDate || 'Return'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={
+                      pickingDateType === 'start' 
+                        ? (formData.startDate ? new Date(formData.startDate) : new Date())
+                        : (formData.endDate ? new Date(formData.endDate) : new Date())
+                    }
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDateChange}
+                  />
+                )}
               </View>
 
               <TouchableOpacity 
@@ -236,7 +385,7 @@ export default function TripsScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Itinerary Modal */}
@@ -339,4 +488,15 @@ const styles = StyleSheet.create({
   itineraryEvent: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
   itineraryDesc: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
   closeItineraryBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 24, marginBottom: 40, elevation: 8 },
+
+  inputWrapper: { position: 'relative', justifyContent: 'center' },
+  loadingWrapper: { position: 'absolute', right: 16 },
+  resultsContainer: { marginTop: 8, borderRadius: 16, borderWidth: 1, overflow: 'hidden', elevation: 5, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+  resultItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1 },
+  resultIcon: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  resultTitle: { fontSize: 15, fontWeight: '700' },
+  resultSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+
+  dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  dateSubLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
 });
