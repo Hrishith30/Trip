@@ -353,6 +353,15 @@ export default function TripsScreen() {
     setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
   };
 
+  const handleToggleActivityComplete = (activityId: string) => {
+    const updatedItinerary = selectedTrip.itinerary.map((i: any) => 
+      i.id === activityId ? { ...i, completed: !i.completed } : i
+    );
+    const updatedTrip = { ...selectedTrip, itinerary: updatedItinerary };
+    setSelectedTrip(updatedTrip);
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+  };
+
 
 
   const handleSaveTrip = () => {
@@ -759,17 +768,43 @@ export default function TripsScreen() {
                   >
                     {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
                       const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
+                      const isCompleted = !!item.completed;
+                      
                       return (
-                        <View key={item.id} style={styles.itineraryItem}>
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={styles.itineraryItem}
+                          activeOpacity={0.8}
+                          onPress={() => handleToggleActivityComplete(item.id)}
+                        >
                           <View style={styles.timeline}>
-                            <View style={[styles.timelineDot, { backgroundColor: colors.tint }]} />
+                            <View style={[
+                              styles.timelineIconContainer, 
+                              { 
+                                backgroundColor: isCompleted ? colors.background : colors.tint,
+                                borderColor: isCompleted ? colors.border : colors.tint,
+                              }
+                            ]}>
+                              <IconComp size={16} color={isCompleted ? colors.tabIconDefault : '#fff'} />
+                            </View>
                             {idx !== (selectedTrip.itinerary.length - 1) && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
                           </View>
-                          <View style={[styles.itineraryCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                          <View style={[
+                            styles.itineraryCard, 
+                            { 
+                              backgroundColor: isCompleted ? 'rgba(0,0,0,0.02)' : colors.background, 
+                              borderColor: colors.border,
+                              opacity: isCompleted ? 0.6 : 1
+                            }
+                          ]}>
                             <View style={styles.itineraryText}>
                               <View style={styles.itineraryHeader}>
                                 <View>
-                                  <Text style={[styles.itineraryTime, { color: colors.tint }]}>{item.time}</Text>
+                                  <Text style={[
+                                    styles.itineraryTime, 
+                                    { color: isCompleted ? colors.tabIconDefault : colors.tint },
+                                    isCompleted && { textDecorationLine: 'line-through' }
+                                  ]}>{item.time}</Text>
                                   {item.date && (
                                     <Text style={[styles.itineraryDate, { color: colors.tabIconDefault }]}>
                                       {formatDate(safeDate(item.date))}
@@ -777,22 +812,25 @@ export default function TripsScreen() {
                                   )}
                                 </View>
                                 <View style={styles.itineraryActions}>
-                                  <TouchableOpacity onPress={() => handleOpenActivityForm(item)}>
+                                  <TouchableOpacity onPress={() => handleOpenActivityForm(item)} style={{ padding: 4 }}>
                                     <Edit2 size={16} color={colors.tabIconDefault} />
                                   </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => handleDeleteActivity(item.id)}>
+                                  <TouchableOpacity onPress={() => handleDeleteActivity(item.id)} style={{ padding: 4 }}>
                                     <Trash2 size={16} color="#ef4444" />
                                   </TouchableOpacity>
                                 </View>
                               </View>
                               <View style={styles.eventRow}>
-                                <IconComp size={18} color={colors.text} style={{ marginRight: 8 }} />
-                                <Text style={[styles.itineraryEvent, { color: colors.text }]}>{item.event}</Text>
+                                <Text style={[
+                                  styles.itineraryEvent, 
+                                  { color: colors.text },
+                                  isCompleted && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
+                                ]}>{item.event}</Text>
                               </View>
                               <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
                             </View>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                     {(!selectedTrip?.itinerary || selectedTrip.itinerary.length === 0) && (
@@ -913,9 +951,9 @@ const styles = StyleSheet.create({
   emptyItineraryText: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
   modalSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 4 },
   itineraryItem: { flexDirection: 'row', marginBottom: 12 },
-  timeline: { alignItems: 'center', marginRight: 16, width: 20, paddingTop: 10 },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, zIndex: 1 },
-  timelineLine: { width: 2, flex: 1, marginTop: 4, marginBottom: -12 },
+  timeline: { alignItems: 'center', marginRight: 12, width: 32, paddingTop: 2 },
+  timelineIconContainer: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1, zIndex: 2 },
+  timelineLine: { width: 2, flex: 1, marginTop: -4, marginBottom: -16 },
   itineraryText: { flex: 1 },
   itineraryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   itineraryTime: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
