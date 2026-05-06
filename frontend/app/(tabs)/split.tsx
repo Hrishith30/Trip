@@ -122,21 +122,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 24,
     paddingTop: 10,
   },
   header: {
-    marginBottom: 25,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 15,
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   balanceCard: {
     padding: 24,

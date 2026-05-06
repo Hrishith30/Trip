@@ -41,7 +41,10 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
+          <View>
+            <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
+            <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Your travel identity</Text>
+          </View>
           <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Settings size={20} color={colors.text} />
           </TouchableOpacity>
@@ -90,19 +93,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 24,
     paddingTop: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 32,
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    marginTop: 4,
+    fontWeight: '600',
   },
   settingsBtn: {
     width: 44,

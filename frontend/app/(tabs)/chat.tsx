@@ -370,13 +370,13 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '500' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10, marginBottom: 32 },
+  title: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '600' },
   plusBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 10, marginBottom: 20, paddingHorizontal: 16, height: 50, borderRadius: 16, borderWidth: 1 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, marginTop: 10, marginBottom: 20, paddingHorizontal: 16, height: 50, borderRadius: 16, borderWidth: 1 },
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '500' },
-  listContent: { paddingHorizontal: 20, paddingBottom: 20 },
+  listContent: { paddingHorizontal: 24, paddingBottom: 20 },
   chatItem: { flexDirection: 'row', paddingVertical: 16, borderBottomWidth: 1, alignItems: 'center' },
   avatar: { width: 56, height: 56, borderRadius: 20 },
   aiAvatar: { width: 56, height: 56, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
