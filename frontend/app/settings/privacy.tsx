@@ -2,7 +2,27 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import { ChevronLeft, Shield, Eye, Lock, Share2 } from 'lucide-react-native';
+import { Eye, Lock, Share2 } from 'lucide-react-native';
+
+const ToggleItem = ({ label, sublabel, icon: Icon, value, onValueChange, colors }: any) => (
+  <View style={[styles.item, { borderBottomColor: colors.border }]}>
+    <View style={styles.itemLeft}>
+      <View style={[styles.iconBox, { backgroundColor: colors.tint + '15' }]}>
+        <Icon size={20} color={colors.tint} />
+      </View>
+      <View style={styles.textColumn}>
+        <Text style={[styles.itemLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.itemSub, { color: colors.tabIconDefault }]}>{sublabel}</Text>
+      </View>
+    </View>
+    <Switch 
+      value={value} 
+      onValueChange={onValueChange}
+      trackColor={{ false: '#767577', true: colors.tint }}
+      thumbColor="#fff"
+    />
+  </View>
+);
 
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -13,26 +33,6 @@ export default function PrivacyScreen() {
     location: false,
     analytics: true,
   });
-
-  const ToggleItem = ({ label, sublabel, icon: Icon, value, onValueChange }: any) => (
-    <View style={[styles.item, { borderBottomColor: colors.border }]}>
-      <View style={styles.itemLeft}>
-        <View style={[styles.iconBox, { backgroundColor: colors.tint + '15' }]}>
-          <Icon size={20} color={colors.tint} />
-        </View>
-        <View style={styles.textColumn}>
-          <Text style={[styles.itemLabel, { color: colors.text }]}>{label}</Text>
-          <Text style={[styles.itemSub, { color: colors.tabIconDefault }]}>{sublabel}</Text>
-        </View>
-      </View>
-      <Switch 
-        value={value} 
-        onValueChange={onValueChange}
-        trackColor={{ false: '#767577', true: colors.tint }}
-        thumbColor="#fff"
-      />
-    </View>
-  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -58,6 +58,7 @@ export default function PrivacyScreen() {
             icon={Eye}
             value={settings.profile}
             onValueChange={(v: boolean) => setSettings(s => ({ ...s, profile: v }))}
+            colors={colors}
           />
           <ToggleItem 
             label="Location Sharing" 
@@ -65,6 +66,7 @@ export default function PrivacyScreen() {
             icon={Lock}
             value={settings.location}
             onValueChange={(v: boolean) => setSettings(s => ({ ...s, location: v }))}
+            colors={colors}
           />
           <ToggleItem 
             label="Usage Analytics" 
@@ -72,6 +74,7 @@ export default function PrivacyScreen() {
             icon={Share2}
             value={settings.analytics}
             onValueChange={(v: boolean) => setSettings(s => ({ ...s, analytics: v }))}
+            colors={colors}
           />
         </View>
 
@@ -86,9 +89,9 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  header: { marginBottom: 32 },
-  title: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '600' },
+  header: { marginBottom: 32, alignItems: 'center' },
+  title: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5, textAlign: 'center' },
+  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '600', textAlign: 'center' },
   card: { borderRadius: 24, padding: 20, borderWidth: 1 },
   item: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, borderBottomWidth: 1 },
   itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },

@@ -86,9 +86,9 @@ export default function PersonalInfoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  header: { marginBottom: 32 },
-  title: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '600' },
+  header: { marginBottom: 32, alignItems: 'center' },
+  title: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5, textAlign: 'center' },
+  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '600', textAlign: 'center' },
   card: { borderRadius: 24, padding: 20, borderWidth: 1, gap: 20 },
   fieldContainer: { paddingBottom: 16, borderBottomWidth: 1 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
