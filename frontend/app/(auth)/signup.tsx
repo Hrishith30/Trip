@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Mail, Lock, User, ArrowRight, Camera } from 'lucide-react-native';
+import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function SignupScreen() {
@@ -13,6 +13,7 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 
   const pickImage = async () => {
@@ -124,8 +125,13 @@ export default function SignupScreen() {
                   placeholderTextColor={colors.tabIconDefault}
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                 />
+                <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  {showPassword
+                    ? <EyeOff size={18} stroke={colors.tabIconDefault} />
+                    : <Eye size={18} stroke={colors.tabIconDefault} />}
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity

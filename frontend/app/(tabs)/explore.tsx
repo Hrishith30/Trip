@@ -16,33 +16,32 @@ export default function ExploreScreen() {
   const searchTimer = useRef<any>(null);
   
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [locationReady, setLocationReady] = useState(false);
+  const [initialRegion, setInitialRegion] = useState<any>(null);
   const [destination, setDestination] = useState<any>(null);
   const [searchText, setSearchText] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [region, setRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        // Permission denied — show a default world view
+        setInitialRegion({ latitude: 20, longitude: 0, latitudeDelta: 60, longitudeDelta: 60 });
+        setLocationReady(true);
+        return;
+      }
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
-      
-      const initialRegion = {
+      setInitialRegion({
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
-      };
-      setRegion(initialRegion);
-      mapRef.current?.animateToRegion(initialRegion, 1500);
+      });
+      setLocationReady(true);
     })();
   }, []);
 
@@ -144,61 +143,65 @@ export default function ExploreScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        showsUserLocation={true}
-        onRegionChangeComplete={(r) => setRegion(r)}
-        onPanDrag={() => Keyboard.dismiss()}
-        onPress={(e) => {
-          Keyboard.dismiss();
-          // Extra sensitivity check for Android
-          if (e.nativeEvent && e.nativeEvent.coordinate) {
-            setDestination({ 
-              id: 'custom-' + Date.now(), 
-              title: 'Pinned Location', 
-              coordinate: e.nativeEvent.coordinate, 
-              type: 'Selected' 
+      {!locationReady ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={{ color: colors.tabIconDefault, marginTop: 12, fontWeight: '600' }}>Finding your location...</Text>
+        </View>
+      ) : (
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          showsUserLocation={true}
+          onPanDrag={() => Keyboard.dismiss()}
+          onPress={(e) => {
+            Keyboard.dismiss();
+            if (e.nativeEvent && e.nativeEvent.coordinate) {
+              setDestination({ 
+                id: 'custom-' + Date.now(), 
+                title: 'Pinned Location', 
+                coordinate: e.nativeEvent.coordinate, 
+                type: 'Selected' 
+              });
+              setShowSuggestions(false);
+            }
+          }}
+          onLongPress={(e) => {
+            Keyboard.dismiss();
+            if (e.nativeEvent && e.nativeEvent.coordinate) {
+              setDestination({ 
+                id: 'custom-' + Date.now(), 
+                title: 'Pinned Location', 
+                coordinate: e.nativeEvent.coordinate, 
+                type: 'Selected' 
+              });
+              setShowSuggestions(false);
+            }
+          }}
+          onPoiClick={(e) => {
+            Keyboard.dismiss();
+            setDestination({
+              id: 'poi-' + e.nativeEvent.placeId,
+              title: e.nativeEvent.name,
+              coordinate: e.nativeEvent.coordinate,
+              type: 'Point of Interest'
             });
             setShowSuggestions(false);
-          }
-        }}
-        onLongPress={(e) => {
-          Keyboard.dismiss();
-          if (e.nativeEvent && e.nativeEvent.coordinate) {
-            setDestination({ 
-              id: 'custom-' + Date.now(), 
-              title: 'Pinned Location', 
-              coordinate: e.nativeEvent.coordinate, 
-              type: 'Selected' 
-            });
-            setShowSuggestions(false);
-          }
-        }}
-        onPoiClick={(e) => {
-          Keyboard.dismiss();
-          // Instant pinning for buildings/landmarks
-          setDestination({
-            id: 'poi-' + e.nativeEvent.placeId,
-            title: e.nativeEvent.name,
-            coordinate: e.nativeEvent.coordinate,
-            type: 'Point of Interest'
-          });
-          setShowSuggestions(false);
-        }}
-        initialRegion={region}
-        customMapStyle={isDarkMode ? darkMapStyle : []}
-      >
-        {destination && (
-          <Marker 
-            coordinate={destination.coordinate}
-            anchor={{ x: 0.5, y: 1 }}
-          >
-            <MapPin size={32} color="#ef4444" fill="#ef444420" strokeWidth={2.5} />
-          </Marker>
-        )}
-      </MapView>
+          }}
+          initialRegion={initialRegion}
+          customMapStyle={isDarkMode ? darkMapStyle : []}
+        >
+          {destination && (
+            <Marker 
+              coordinate={destination.coordinate}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <MapPin size={32} color="#ef4444" fill="#ef444420" strokeWidth={2.5} />
+            </Marker>
+          )}
+        </MapView>
+      )}
 
       <SafeAreaView style={styles.searchContainer} edges={['top']}>
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>

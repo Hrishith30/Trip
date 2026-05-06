@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
-import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt } from 'lucide-react-native';
+import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +15,10 @@ const INITIAL_TRIPS = [
     endDate: '2026-07-22',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
+    itinerary: [
+      { id: '1', time: '09:00 AM', event: 'Morning Flight', icon: 'Plane', desc: 'Flight TK123 to Zermatt' },
+      { id: '2', time: '01:00 PM', event: 'Hotel Check-in', icon: 'MapPin', desc: 'Alpine Resort & Spa' }
+    ]
   },
   {
     id: '2',
@@ -24,6 +28,9 @@ const INITIAL_TRIPS = [
     endDate: '2026-08-14',
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
+    itinerary: [
+      { id: '1', time: '11:00 AM', event: 'Eiffel Tower', icon: 'Sparkles', desc: 'Guided tour at the summit' }
+    ]
   }
 ];
 
@@ -44,10 +51,23 @@ export default function TripsScreen() {
   const [loadingImage, setLoadingImage] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickingDateType, setPickingDateType] = useState<'start' | 'end'>('start');
   const [tempDate, setTempDate] = useState(new Date());
   const [minPickerDate, setMinPickerDate] = useState(new Date());
   const searchTimer = useRef<any>(null);
+
+  // Itinerary Form State
+  const [itineraryFormVisible, setItineraryFormVisible] = useState(false);
+  const [editingItineraryItem, setEditingItineraryItem] = useState<any>(null);
+  const [itineraryFormData, setItineraryFormData] = useState({
+    event: '',
+    time: '09:00 AM',
+    date: '',
+    desc: '',
+    icon: 'Plane'
+  });
+  const [showActivityDatePicker, setShowActivityDatePicker] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -56,7 +76,8 @@ export default function TripsScreen() {
     startDate: '',
     endDate: '',
     image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
-    status: 'Upcoming'
+    status: 'Upcoming',
+    itinerary: []
   });
 
   const performLocationSearch = async (query: string) => {
@@ -141,6 +162,35 @@ export default function TripsScreen() {
     });
   };
 
+  const getStableTime = (timeStr: string) => {
+    const d = new Date();
+    try {
+      const [time, period] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      d.setHours(hours, minutes, 0, 0);
+    } catch (e) {
+      d.setHours(9, 0, 0, 0);
+    }
+    return d;
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    if (event.type === 'dismissed') {
+      setShowTimePicker(false);
+      return;
+    }
+    if (selectedTime) {
+      let hours = selectedTime.getHours();
+      const minutes = selectedTime.getMinutes();
+      const period = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+      setItineraryFormData(f => ({ ...f, time: formatted }));
+    }
+  };
+
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (selectedDate) {
       setTempDate(selectedDate);
@@ -160,8 +210,10 @@ export default function TripsScreen() {
 
     if (pickingDateType === 'start') {
       setFormData(f => ({ ...f, startDate: isoString, endDate: '' }));
-    } else {
+    } else if (pickingDateType === 'end') {
       setFormData(f => ({ ...f, endDate: isoString }));
+    } else {
+      setItineraryFormData(f => ({ ...f, date: isoString }));
     }
     setShowDatePicker(false);
   };
@@ -174,7 +226,7 @@ export default function TripsScreen() {
     }, 2000);
   };
 
-  const handleOpenDatePicker = (type: 'start' | 'end') => {
+  const handleOpenDatePicker = (type: 'start' | 'end' | 'activity') => {
     Keyboard.dismiss();
     setLocationResults([]);
 
@@ -183,31 +235,40 @@ export default function TripsScreen() {
 
     let initialDate = new Date(today);
     let minDate = new Date(today);
+    let maxDate: Date | undefined = undefined;
 
-    const existingDateStr = type === 'start' ? formData.startDate : formData.endDate;
+    if (type === 'activity') {
+      initialDate = safeDate(itineraryFormData.date) || safeDate(selectedTrip.startDate) || new Date();
+      minDate = safeDate(selectedTrip.startDate) || new Date();
+      maxDate = safeDate(selectedTrip.endDate) || undefined;
+    } else {
+      const existingDateStr = type === 'start' ? formData.startDate : formData.endDate;
 
-    if (existingDateStr) {
-      const parsed = safeDate(existingDateStr);
-      if (parsed) {
-        initialDate = parsed;
+      if (existingDateStr) {
+        const parsed = safeDate(existingDateStr);
+        if (parsed) {
+          initialDate = parsed;
+        }
       }
-    }
 
-    // 2. Ensure return date isn't before start date
-    if (type === 'end' && formData.startDate) {
-      const start = safeDate(formData.startDate);
-      if (start) {
-        minDate = start;
-        if (initialDate < start) {
-          initialDate = new Date(start);
+      // 2. Ensure return date isn't before start date
+      if (type === 'end' && formData.startDate) {
+        const start = safeDate(formData.startDate);
+        if (start) {
+          minDate = start;
+          if (initialDate < start) {
+            initialDate = new Date(start);
+          }
         }
       }
     }
 
-    setPickingDateType(type);
+    setPickingDateType(type as any);
     setTempDate(initialDate);
     setMinPickerDate(minDate);
-
+    // Overload minPickerDate to store max too for simplicity or use another state
+    // For now we'll use a hacky way or just use the local modal logic
+    
     setTimeout(() => {
       setShowDatePicker(true);
     }, 150);
@@ -216,7 +277,7 @@ export default function TripsScreen() {
   const handleOpenModal = (trip: any = null) => {
     if (trip) {
       setEditingTrip(trip);
-      setFormData({ ...trip });
+      setFormData({ ...trip, itinerary: trip.itinerary || [] });
     } else {
       setEditingTrip(null);
       const now = new Date();
@@ -227,7 +288,8 @@ export default function TripsScreen() {
         startDate: todayISO,
         endDate: '',
         image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
-        status: 'Upcoming'
+        status: 'Upcoming',
+        itinerary: []
       });
     }
     setLocationResults([]);
@@ -239,6 +301,57 @@ export default function TripsScreen() {
     setSelectedTrip(trip);
     setItineraryModalVisible(true);
   };
+
+  const handleOpenActivityForm = (activity: any = null) => {
+    if (activity) {
+      setEditingItineraryItem(activity);
+      setItineraryFormData({ ...activity });
+    } else {
+      setEditingItineraryItem(null);
+      setItineraryFormData({
+        event: '',
+        time: '09:00 AM',
+        date: selectedTrip?.startDate || '',
+        desc: '',
+        icon: 'Plane'
+      });
+    }
+    Keyboard.dismiss();
+    setItineraryFormVisible(true);
+  };
+
+  const handleSaveActivity = () => {
+    if (!itineraryFormData.event) {
+      Alert.alert('Incomplete', 'Please enter an event name.');
+      return;
+    }
+
+    Keyboard.dismiss();
+    const updatedItinerary = [...(selectedTrip.itinerary || [])];
+    if (editingItineraryItem) {
+      const idx = updatedItinerary.findIndex(i => i.id === editingItineraryItem.id);
+      updatedItinerary[idx] = { ...itineraryFormData, id: editingItineraryItem.id };
+    } else {
+      updatedItinerary.push({
+        ...itineraryFormData,
+        id: Date.now().toString()
+      });
+    }
+
+    const updatedTrip = { ...selectedTrip, itinerary: updatedItinerary };
+    setSelectedTrip(updatedTrip);
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+    setItineraryFormVisible(false);
+  };
+
+  const handleDeleteActivity = (activityId: string) => {
+    const updatedItinerary = selectedTrip.itinerary.filter((i: any) => i.id !== activityId);
+    const updatedTrip = { ...selectedTrip, itinerary: updatedItinerary };
+    setSelectedTrip(updatedTrip);
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+  };
+
+
 
   const handleSaveTrip = () => {
     if (!formData.name || !formData.location) {
@@ -480,37 +593,6 @@ export default function TripsScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                {/* Pop-up Date Picker Modal */}
-                <Modal visible={showDatePicker} transparent animationType="fade">
-                  <TouchableOpacity
-                    style={styles.datePickerOverlay}
-                    activeOpacity={1}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                      <View style={styles.pickerHeader}>
-                        <Text style={[styles.pickerTitle, { color: colors.text }]}>
-                          Select {pickingDateType === 'start' ? 'Departure' : 'Return'}
-                        </Text>
-                        <TouchableOpacity onPress={() => confirmDate(tempDate)}>
-                          <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <DateTimePicker
-                        key={`${pickingDateType}-${minPickerDate.getTime()}`}
-                        value={tempDate}
-                        mode="date"
-                        display="inline"
-                        minimumDate={pickingDateType === 'start' ? new Date() : minPickerDate}
-                        themeVariant={isDarkMode ? 'dark' : 'light'}
-                        accentColor={colors.tint}
-                        onChange={onDateChange}
-                        style={{ width: '100%', alignSelf: 'center' }}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </Modal>
               </View>
 
               <TouchableOpacity
@@ -524,49 +606,322 @@ export default function TripsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Trip Date Picker (for start/end dates only, shown outside itinerary modal) */}
+      {Platform.OS === 'android' && showDatePicker && (
+        <DateTimePicker
+          key={`${pickingDateType}-android`}
+          value={tempDate}
+          mode="date"
+          display="default"
+          minimumDate={pickingDateType === 'end' ? minPickerDate : undefined}
+          onChange={(event, date) => {
+            if (event.type === 'dismissed') { setShowDatePicker(false); return; }
+            if (date) confirmDate(date);
+          }}
+        />
+      )}
+      {Platform.OS === 'ios' && (
+        <Modal visible={showDatePicker} transparent animationType="fade">
+          <TouchableOpacity
+            style={styles.datePickerOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.pickerHeader}>
+                <Text style={[styles.pickerTitle, { color: colors.text }]}>
+                  Select {pickingDateType === 'start' ? 'Departure' : 'Return'}
+                </Text>
+                <TouchableOpacity onPress={() => confirmDate(tempDate)}>
+                  <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                key={`${pickingDateType}-${minPickerDate.getTime()}`}
+                value={tempDate}
+                mode="date"
+                display="inline"
+                minimumDate={pickingDateType === 'end' ? minPickerDate : undefined}
+                themeVariant={isDarkMode ? 'dark' : 'light'}
+                accentColor={colors.tint}
+                onChange={onDateChange}
+                style={{ width: '100%', alignSelf: 'center' }}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+
       {/* Itinerary Modal */}
       <Modal visible={itineraryModalVisible} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
           <View style={[styles.itineraryContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedTrip?.name || 'Itinerary'}</Text>
-                <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]}>Complete Schedule</Text>
-              </View>
-              <TouchableOpacity onPress={() => setItineraryModalVisible(false)} style={styles.closeBtn}>
-                <X size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+              {itineraryFormVisible ? (
+                /* Activity Editor View (Integrated) */
+                <View style={{ flex: 1 }}>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={() => { Keyboard.dismiss(); setItineraryFormVisible(false); }} style={styles.backBtn}>
+                      <X size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.modalTitle, { color: colors.text, flex: 1, marginLeft: 12 }]}>
+                      {editingItineraryItem ? 'Edit Activity' : 'Add Activity'}
+                    </Text>
+                  </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {[
-                { time: '09:00 AM', event: 'Morning Flight', icon: Plane, desc: 'Flight TK123 to Zermatt' },
-                { time: '01:00 PM', event: 'Hotel Check-in', icon: MapPin, desc: 'Alpine Resort & Spa' },
-                { time: '04:00 PM', event: 'Local Exploration', icon: Compass, desc: 'Visit the Old Village' },
-                { time: '08:00 PM', event: 'Welcome Dinner', icon: Receipt, desc: 'Traditional Swiss Fondu' }
-              ].map((item, idx) => (
-                <View key={idx} style={styles.itineraryItem}>
-                  <View style={styles.timeline}>
-                    <View style={[styles.timelineDot, { backgroundColor: colors.tint }]} />
-                    {idx !== 3 && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
-                  </View>
-                  <View style={styles.itineraryText}>
-                    <Text style={[styles.itineraryTime, { color: colors.tabIconDefault }]}>{item.time}</Text>
-                    <Text style={[styles.itineraryEvent, { color: colors.text }]}>{item.event}</Text>
-                    <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
-                  </View>
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    contentContainerStyle={{ paddingBottom: 40 }}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <View style={styles.formItem}>
+                      <Text style={[styles.label, { color: colors.tabIconDefault }]}>Activity Name</Text>
+                      <TextInput
+                        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                        placeholder="e.g. Visit Louvre Museum"
+                        placeholderTextColor={colors.tabIconDefault}
+                        value={itineraryFormData.event}
+                        onChangeText={(text) => setItineraryFormData(f => ({ ...f, event: text }))}
+                      />
+                    </View>
+
+                    <View style={styles.dateRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.label, { color: colors.tabIconDefault }]}>Day</Text>
+                        <TouchableOpacity
+                          style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                          onPress={() => { Keyboard.dismiss(); setShowActivityDatePicker(true); }}
+                        >
+                          <Calendar size={16} color={colors.tint} />
+                          <Text style={{ color: itineraryFormData.date ? colors.text : colors.tabIconDefault, fontSize: 13, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+                            {itineraryFormData.date ? formatDate(safeDate(itineraryFormData.date)) : 'Select Day'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {/* Activity Date Picker — rendered INSIDE the modal so it appears above it */}
+                        {Platform.OS === 'android' && showActivityDatePicker && (
+                          <DateTimePicker
+                            value={safeDate(itineraryFormData.date) || safeDate(selectedTrip?.startDate) || new Date()}
+                            mode="date"
+                            display="default"
+                            minimumDate={safeDate(selectedTrip?.startDate) || undefined}
+                            maximumDate={safeDate(selectedTrip?.endDate) || undefined}
+                            onChange={(event, date) => {
+                              setShowActivityDatePicker(false);
+                              if (event.type === 'dismissed') return;
+                              if (date) {
+                                const y = date.getFullYear();
+                                const m = String(date.getMonth() + 1).padStart(2, '0');
+                                const d = String(date.getDate()).padStart(2, '0');
+                                setItineraryFormData(f => ({ ...f, date: `${y}-${m}-${d}` }));
+                              }
+                            }}
+                          />
+                        )}
+                      </View>
+
+                      {/* iOS Activity Date Picker sheet */}
+                      {Platform.OS === 'ios' && (
+                        <Modal visible={showActivityDatePicker} transparent animationType="fade">
+                          <TouchableOpacity style={styles.datePickerOverlay} activeOpacity={1} onPress={() => setShowActivityDatePicker(false)}>
+                            <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                              <View style={styles.pickerHeader}>
+                                <Text style={[styles.pickerTitle, { color: colors.text }]}>Select Activity Day</Text>
+                                <TouchableOpacity onPress={() => setShowActivityDatePicker(false)}>
+                                  <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
+                                </TouchableOpacity>
+                              </View>
+                              <DateTimePicker
+                                value={safeDate(itineraryFormData.date) || safeDate(selectedTrip?.startDate) || new Date()}
+                                mode="date"
+                                display="inline"
+                                minimumDate={safeDate(selectedTrip?.startDate) || undefined}
+                                maximumDate={safeDate(selectedTrip?.endDate) || undefined}
+                                themeVariant={isDarkMode ? 'dark' : 'light'}
+                                accentColor={colors.tint}
+                                onChange={(event, date) => {
+                                  if (date) {
+                                    const y = date.getFullYear();
+                                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                                    const d = String(date.getDate()).padStart(2, '0');
+                                    setItineraryFormData(f => ({ ...f, date: `${y}-${m}-${d}` }));
+                                  }
+                                }}
+                                style={{ width: '100%', alignSelf: 'center' }}
+                              />
+                            </View>
+                          </TouchableOpacity>
+                        </Modal>
+                      )}
+                      <View style={{ width: 12 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.label, { color: colors.tabIconDefault }]}>Time</Text>
+                        <TouchableOpacity
+                          style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                          onPress={() => setShowTimePicker(true)}
+                        >
+                          <Clock size={16} color={colors.tint} />
+                          <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>{itineraryFormData.time}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Time Picker Modal */}
+                    <Modal visible={showTimePicker} transparent animationType="fade">
+                      <TouchableOpacity
+                        style={styles.datePickerOverlay}
+                        activeOpacity={1}
+                        onPress={() => setShowTimePicker(false)}
+                      >
+                        <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                          <View style={styles.pickerHeader}>
+                            <Text style={[styles.pickerTitle, { color: colors.text }]}>Select Time</Text>
+                            <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                              <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={getStableTime(itineraryFormData.time)}
+                            mode="time"
+                            is24Hour={false}
+                            display="spinner"
+                            onChange={onTimeChange}
+                            textColor={colors.text}
+                            style={{ width: '100%' }}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    </Modal>
+
+                    <View style={styles.formItem}>
+                      <Text style={[styles.label, { color: colors.tabIconDefault }]}>Description</Text>
+                      <TextInput
+                        style={[styles.input, { color: colors.text, borderColor: colors.border, height: 100, paddingTop: 12 }]}
+                        placeholder="Summary of the activity..."
+                        placeholderTextColor={colors.tabIconDefault}
+                        multiline
+                        value={itineraryFormData.desc}
+                        onChangeText={(text) => setItineraryFormData(f => ({ ...f, desc: text }))}
+                      />
+                    </View>
+
+                    <View style={styles.formItem}>
+                      <Text style={[styles.label, { color: colors.tabIconDefault }]}>Category</Text>
+                      <View style={styles.categoryRow}>
+                        {[
+                          { id: 'Plane', icon: Plane, label: 'Travel' },
+                          { id: 'MapPin', icon: MapPin, label: 'Visit' },
+                          { id: 'Sparkles', icon: Sparkles, label: 'Feature' },
+                          { id: 'Compass', icon: Compass, label: 'Explore' }
+                        ].map((cat) => (
+                          <TouchableOpacity
+                            key={cat.id}
+                            style={[
+                              styles.categoryBtn,
+                              { borderColor: colors.border },
+                              itineraryFormData.icon === cat.id && { backgroundColor: colors.tint, borderColor: colors.tint }
+                            ]}
+                            onPress={() => setItineraryFormData(f => ({ ...f, icon: cat.id }))}
+                          >
+                            <cat.icon size={20} color={itineraryFormData.icon === cat.id ? '#fff' : colors.tabIconDefault} />
+                            <Text style={[styles.categoryLabel, { color: itineraryFormData.icon === cat.id ? '#fff' : colors.tabIconDefault }]}>{cat.label}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.saveBtn, { backgroundColor: colors.tint }]}
+                      onPress={handleSaveActivity}
+                    >
+                      <Text style={styles.saveBtnText}>{editingItineraryItem ? 'Update Activity' : 'Add to Itinerary'}</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
                 </View>
-              ))}
-              <TouchableOpacity
-                style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
-                onPress={() => setItineraryModalVisible(false)}
-              >
-                <Text style={styles.saveBtnText}>Got it!</Text>
-              </TouchableOpacity>
-            </ScrollView>
+              ) : (
+                /* Itinerary List View */
+                <>
+                  <View style={styles.itineraryHeaderRow}>
+                    <View style={{ flex: 1, marginRight: 16 }}>
+                      <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>{selectedTrip?.name || 'Itinerary'}</Text>
+                      <Text style={[styles.modalSubtitle, { color: colors.tabIconDefault }]} numberOfLines={1}>{selectedTrip?.location}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleOpenActivityForm()}
+                      style={[styles.addActivityBtn, { backgroundColor: colors.tint }]}
+                    >
+                      <PlusCircle size={18} color="#fff" />
+                      <Text style={[styles.addActivityText, { color: '#fff' }]}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
+                      const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
+                      return (
+                        <View key={item.id} style={styles.itineraryItem}>
+                          <View style={styles.timeline}>
+                            <View style={[styles.timelineDot, { backgroundColor: colors.tint }]} />
+                            {idx !== (selectedTrip.itinerary.length - 1) && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
+                          </View>
+                          <View style={[styles.itineraryCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                            <View style={styles.itineraryText}>
+                              <View style={styles.itineraryHeader}>
+                                <View>
+                                  <Text style={[styles.itineraryTime, { color: colors.tint }]}>{item.time}</Text>
+                                  {item.date && (
+                                    <Text style={[styles.itineraryDate, { color: colors.tabIconDefault }]}>
+                                      {formatDate(safeDate(item.date))}
+                                    </Text>
+                                  )}
+                                </View>
+                                <View style={styles.itineraryActions}>
+                                  <TouchableOpacity onPress={() => handleOpenActivityForm(item)}>
+                                    <Edit2 size={16} color={colors.tabIconDefault} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => handleDeleteActivity(item.id)}>
+                                    <Trash2 size={16} color="#ef4444" />
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                              <View style={styles.eventRow}>
+                                <IconComp size={18} color={colors.text} style={{ marginRight: 8 }} />
+                                <Text style={[styles.itineraryEvent, { color: colors.text }]}>{item.event}</Text>
+                              </View>
+                              <Text style={[styles.itineraryDesc, { color: colors.tabIconDefault }]}>{item.desc}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+                    {(!selectedTrip?.itinerary || selectedTrip.itinerary.length === 0) && (
+                      <View style={styles.emptyItinerary}>
+                        <Compass size={48} color={colors.border} />
+                        <Text style={[styles.emptyItineraryText, { color: colors.tabIconDefault }]}>No activities planned yet.</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.closeItineraryBtn, { backgroundColor: colors.tint }]}
+                      onPress={() => setItineraryModalVisible(false)}
+                    >
+                      <Text style={styles.saveBtnText}>Close Itinerary</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                </>
+              )}
+            </KeyboardAvoidingView>
           </View>
         </View>
       </Modal>
+
+      {/* Activity Editor Modal removed - now integrated */}
     </SafeAreaView>
   );
 }
@@ -598,6 +953,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
   modalTitle: { fontSize: 24, fontWeight: '900' },
   closeBtn: { padding: 4 },
+  backBtn: { padding: 4 },
   formItem: { marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { height: 56, borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, fontSize: 16, fontWeight: '600' },
@@ -613,15 +969,31 @@ const styles = StyleSheet.create({
   emptyBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   // Itinerary Styles
-  itineraryContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, height: '85%' },
+  itineraryContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, height: '90%' },
+  itineraryHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  addActivityBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  addActivityText: { fontSize: 14, fontWeight: '800' },
+  itineraryCard: { flex: 1, borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 8 },
+  itineraryActions: { flexDirection: 'row', gap: 12 },
+  eventRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  categoryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 8 },
+  categoryBtn: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1 },
+  categoryLabel: { fontSize: 13, fontWeight: '700' },
+  activityFormContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, height: '80%' },
+  doneTimeBtn: { alignSelf: 'flex-end', marginTop: 10, padding: 10 },
+  pickerBtn: { height: 52, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 16, paddingHorizontal: 14 },
+  emptyItinerary: { alignItems: 'center', justifyContent: 'center', padding: 60, gap: 16 },
+  emptyItineraryText: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
   modalSubtitle: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  itineraryItem: { flexDirection: 'row', marginBottom: 24 },
-  timeline: { alignItems: 'center', marginRight: 20, width: 20 },
+  itineraryItem: { flexDirection: 'row', marginBottom: 12 },
+  timeline: { alignItems: 'center', marginRight: 16, width: 20, paddingTop: 10 },
   timelineDot: { width: 12, height: 12, borderRadius: 6, zIndex: 1 },
-  timelineLine: { width: 2, flex: 1, marginTop: 4, marginBottom: -20 },
+  timelineLine: { width: 2, flex: 1, marginTop: 4, marginBottom: -12 },
   itineraryText: { flex: 1 },
-  itineraryTime: { fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase' },
-  itineraryEvent: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
+  itineraryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  itineraryTime: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  itineraryDate: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },
+  itineraryEvent: { fontSize: 17, fontWeight: '900' },
   itineraryDesc: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
   closeItineraryBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 24, marginBottom: 40, elevation: 8 },
 
