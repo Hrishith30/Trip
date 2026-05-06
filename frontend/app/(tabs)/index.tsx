@@ -81,21 +81,6 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* Dynamic Stats Banner */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsScroll}
-        >
-          <View style={[styles.statBanner, { backgroundColor: colors.tint }]}>
-            <StatCard icon={Plane} value="12" label="Global Trips" color="#fff" isDark />
-            <View style={styles.statDivider} />
-            <StatCard icon={Users} value="4" label="Trip Tribes" color="#fff" isDark />
-            <View style={styles.statDivider} />
-            <StatCard icon={MapPin} value="28" label="Places" color="#fff" isDark />
-          </View>
-        </ScrollView>
-
         {/* Featured Adventure */}
         <View style={styles.sectionTitleRow}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Adventure</Text>
@@ -176,18 +161,6 @@ export default function Dashboard() {
   );
 }
 
-const StatCard = ({ icon: Icon, value, label, color, isDark }: any) => (
-  <View style={styles.statItem}>
-    <View style={[styles.statIconWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : color + '15' }]}>
-      <Icon size={18} color={color} />
-    </View>
-    <View>
-      <Text style={[styles.statNum, { color: isDark ? '#fff' : '#000' }]}>{value}</Text>
-      <Text style={[styles.statDesc, { color: isDark ? 'rgba(255,255,255,0.7)' : '#666' }]}>{label}</Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
@@ -200,13 +173,7 @@ const styles = StyleSheet.create({
   avatar: { width: '100%', height: '100%', borderRadius: 18 },
   statusIndicator: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
 
-  statsScroll: { paddingLeft: 24, paddingRight: 24, marginBottom: 32 },
-  statBanner: { flexDirection: 'row', padding: 16, borderRadius: 28 },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  statNum: { fontSize: 18, fontWeight: '800' },
-  statDesc: { fontSize: 10, fontWeight: '600', marginTop: 1 },
-  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(0,0,0,0.05)', marginHorizontal: 15 },
+
 
   sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
