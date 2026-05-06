@@ -141,7 +141,7 @@ export default function Dashboard() {
               <Text style={[styles.activitySub, { color: colors.tabIconDefault }]}>Eiffel Tower was added to Paris trip</Text>
             </View>
           </View>
-          <View style={styles.activityItem}>
+          <View style={[styles.activityItem, { borderBottomWidth: 0 }]}>
             <View style={[styles.activityIcon, { backgroundColor: colors.tint + '20' }]}>
               <TrendingUp size={18} stroke={colors.tint} />
             </View>
@@ -151,14 +151,51 @@ export default function Dashboard() {
             </View>
           </View>
         </View>
-
-        <View style={{ height: 40 }} />
       </Animated.ScrollView>
+
+      {/* Floating Music Hub */}
+      <TouchableOpacity 
+        style={[styles.musicFab, { backgroundColor: colors.tint, shadowColor: colors.tint }]}
+        activeOpacity={0.8}
+        onPress={() => router.push('/music')}
+      >
+        <Music size={24} color="#fff" />
+        <View style={styles.playingIndicator}>
+          <Play size={10} color={colors.tint} fill={colors.tint} />
+        </View>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  musicFab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 25,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  playingIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   container: {
     flex: 1,
   },

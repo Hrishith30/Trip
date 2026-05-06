@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, useColorScheme, FlatList, TouchableOpacity, Image, TextInput, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon } from 'lucide-react-native';
+import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 interface Message {
   id: string;
@@ -89,6 +90,23 @@ export default function ChatScreen() {
         uri: result.assets[0].uri,
         name: result.assets[0].name
       });
+    }
+  };
+
+  const shareLocation = async () => {
+    setShowAttachMenu(false);
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Allow location access to share it.');
+      return;
+    }
+
+    try {
+      let location = await Location.getCurrentPositionAsync({});
+      const mapLink = `https://www.google.com/maps/search/?api=1&query=${location.coords.latitude},${location.coords.longitude}`;
+      setInputText(`📍 My Current Location: ${mapLink}`);
+    } catch (error) {
+      Alert.alert('Error', 'Could not get location.');
     }
   };
 
@@ -183,6 +201,10 @@ export default function ChatScreen() {
               <TouchableOpacity style={styles.menuItem} onPress={() => pickDocument('audio/*')}>
                 <View style={[styles.menuIcon, { backgroundColor: '#10b98120' }]}><MusicIcon size={20} color="#10b981" /></View>
                 <Text style={[styles.menuText, { color: colors.text }]}>Audio</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={shareLocation}>
+                <View style={[styles.menuIcon, { backgroundColor: '#8b5cf620' }]}><MapPin size={20} color="#8b5cf6" /></View>
+                <Text style={[styles.menuText, { color: colors.text }]}>Location</Text>
               </TouchableOpacity>
             </View>
           )}

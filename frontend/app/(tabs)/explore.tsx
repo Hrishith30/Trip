@@ -1,25 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, useColorScheme, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, useColorScheme, TouchableOpacity, TextInput, Alert, Dimensions, Linking, Platform, FlatList, ActivityIndicator } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors } from '../../constants/Colors';
-import { Search, MapPin, LocateFixed } from 'lucide-react-native';
+import { Search, MapPin, LocateFixed, Clock, X, Share2, CornerUpRight, Star, TrendingUp, Compass, Map as MapIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function ExploreScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const mapRef = useRef<MapView>(null);
+  const searchTimer = useRef<any>(null);
+  
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [destination, setDestination] = useState<any>(null);
+  const [searchText, setSearchText] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Allow location access to see your live position on the map.');
-        return;
-      }
-
+      if (status !== 'granted') return;
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
       
@@ -32,16 +37,100 @@ export default function ExploreScreen() {
     })();
   }, []);
 
-  const moveToLocation = async () => {
-    let currentLocation = await Location.getCurrentPositionAsync({});
-    setLocation(currentLocation);
+  const performSearch = async (text: string) => {
+    const query = text.trim();
+    if (query.length <= 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setLoading(true);
+    setShowSuggestions(true);
     
+    try {
+      const response = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+          const formattedResults = data.features.map((item: any, index: number) => {
+            const props = item.properties;
+            const addressParts = [props.city, props.state, props.country].filter(Boolean);
+            return {
+              id: `p-${index}-${props.osm_id || Math.random()}`,
+              title: props.name || props.street || props.city || "Unknown Location",
+              subtitle: addressParts.join(', ') || "Global Location",
+              type: props.osm_value || props.type || 'place',
+              coordinate: {
+                latitude: item.geometry.coordinates[1],
+                longitude: item.geometry.coordinates[0],
+              }
+            };
+          });
+          setSuggestions(formattedResults);
+        } else {
+          setSuggestions([]);
+        }
+      }
+    } catch (error) {
+      console.log('Search connection error');
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchTextChange = (text: string) => {
+    setSearchText(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    
+    if (text.length > 2) {
+      searchTimer.current = setTimeout(() => {
+        performSearch(text);
+      }, 600); 
+    } else {
+      setShowSuggestions(false);
+      setSuggestions([]);
+    }
+  };
+
+  const selectDestination = (item: any) => {
+    setDestination(item);
+    setSearchText(item.title);
+    setShowSuggestions(false);
     mapRef.current?.animateToRegion({
-      latitude: currentLocation.coords.latitude,
-      longitude: currentLocation.coords.longitude,
+      ...item.coordinate,
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
-    }, 1000);
+    }, 1500);
+  };
+
+  const startNavigation = () => {
+    if (!destination) return;
+    const { latitude, longitude } = destination.coordinate;
+    const url = Platform.select({
+      ios: `maps://app?daddr=${latitude},${longitude}`,
+      android: `google.navigation:q=${latitude},${longitude}`,
+    });
+    if (url) Linking.openURL(url);
+  };
+
+  const moveToLocation = async () => {
+    try {
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+      mapRef.current?.animateToRegion({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    } catch (error) {
+      Alert.alert('Error', 'Could not get current location.');
+    }
   };
 
   return (
@@ -50,8 +139,10 @@ export default function ExploreScreen() {
         ref={mapRef}
         style={styles.map}
         showsUserLocation={true}
-        followsUserLocation={false}
-        showsMyLocationButton={false}
+        onPress={(e) => {
+          setDestination({ id: 'custom', title: 'Pinned Location', coordinate: e.nativeEvent.coordinate, type: 'Selected' });
+          setShowSuggestions(false);
+        }}
         initialRegion={{
           latitude: 37.78825,
           longitude: -122.4324,
@@ -60,31 +151,101 @@ export default function ExploreScreen() {
         }}
         customMapStyle={colorScheme === 'dark' ? darkMapStyle : []}
       >
-        <Marker coordinate={{ latitude: 37.78825, longitude: -122.4324 }}>
-          <View style={[styles.marker, { backgroundColor: colors.tint }]}>
-            <MapPin size={18} color="#fff" />
-          </View>
-        </Marker>
+        {destination && (
+          <Marker coordinate={destination.coordinate}>
+            <View style={[styles.destMarker, { backgroundColor: '#ef4444' }]}>
+              <MapPin size={20} color="#fff" />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
-      {/* Floating Search Bar */}
       <SafeAreaView style={styles.searchContainer} edges={['top']}>
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Search size={20} stroke={colors.tabIconDefault} />
           <TextInput
-            placeholder="Search destinations..."
+            placeholder="Search any building or street..."
             placeholderTextColor={colors.tabIconDefault}
             style={[styles.searchInput, { color: colors.text }]}
+            value={searchText}
+            onChangeText={handleSearchTextChange}
+            onFocus={() => searchText.length > 2 && setShowSuggestions(true)}
           />
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.tint} />
+          ) : searchText.length > 0 ? (
+            <TouchableOpacity onPress={() => { setSearchText(''); setShowSuggestions(false); }}>
+              <X size={20} color={colors.tabIconDefault} />
+            </TouchableOpacity>
+          ) : null}
         </View>
+
+        {showSuggestions && (
+          <View style={[styles.suggestionsList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.listHeader}>
+              <TrendingUp size={14} color={colors.tabIconDefault} />
+              <Text style={[styles.listHeaderText, { color: colors.tabIconDefault }]}>
+                {loading ? 'Searching World...' : 'Search Results'}
+              </Text>
+            </View>
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="always"
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                  onPress={() => selectDestination(item)}
+                >
+                  <View style={[styles.suggestIcon, { backgroundColor: colors.tint + '15' }]}>
+                    <MapIcon size={18} color={colors.tint} />
+                  </View>
+                  <View style={styles.suggestText}>
+                    <Text style={[styles.suggestTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
+                    <Text style={[styles.suggestSub, { color: colors.tabIconDefault }]} numberOfLines={1}>{item.subtitle}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={() => !loading && (
+                <View style={styles.emptyContainer}>
+                  <Text style={{ color: colors.tabIconDefault }}>No results found</Text>
+                </View>
+              )}
+            />
+          </View>
+        )}
       </SafeAreaView>
 
-      {/* Floating Action Buttons */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity 
-          style={[styles.fab, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={moveToLocation}
-        >
+      {destination && (
+        <View style={[styles.routeCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.headerMain}>
+              <View style={styles.typeRow}>
+                <TrendingUp size={14} color={colors.tint} />
+                <Text style={[styles.typeText, { color: colors.tint }]}>{destination.type || 'Location'}</Text>
+              </View>
+              <Text style={[styles.destTitle, { color: colors.text }]} numberOfLines={1}>{destination.title}</Text>
+              <Text style={[styles.destSub, { color: colors.tabIconDefault }]} numberOfLines={1}>{destination.subtitle}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setDestination(null)} style={styles.closeBtn}>
+              <X size={20} color={colors.tabIconDefault} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.tint }]} onPress={startNavigation}>
+              <CornerUpRight size={20} color="#fff" />
+              <Text style={styles.primaryBtnText}>Go Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.secondaryBtn, { backgroundColor: colors.border + '30' }]}>
+              <Share2 size={20} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.fabContainer, { bottom: destination ? 220 : 40 }]}>
+        <TouchableOpacity style={[styles.fab, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={moveToLocation}>
           <LocateFixed size={24} stroke={colors.tint} />
         </TouchableOpacity>
       </View>
@@ -92,20 +253,36 @@ export default function ExploreScreen() {
   );
 }
 
-const darkMapStyle = [
-  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
-];
+const darkMapStyle = [{ "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] }, { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] }, { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] }, { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }];
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { width: '100%', height: '100%' },
-  marker: { padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
-  searchContainer: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 10 },
+  searchContainer: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 10, zIndex: 100 },
   searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 54, borderRadius: 16, borderWidth: 1, elevation: 10 },
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '500' },
-  fabContainer: { position: 'absolute', bottom: 40, right: 20, gap: 12 },
+  suggestionsList: { marginTop: 8, borderRadius: 20, borderWidth: 1, maxHeight: 350, overflow: 'hidden', elevation: 15 },
+  listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+  listHeaderText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, gap: 16 },
+  suggestIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  suggestText: { flex: 1 },
+  suggestTitle: { fontSize: 16, fontWeight: '700' },
+  suggestSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  destMarker: { padding: 8, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
+  routeCard: { position: 'absolute', bottom: 20, left: 20, right: 20, padding: 20, borderRadius: 28, borderWidth: 1, elevation: 20 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
+  headerMain: { flex: 1 },
+  typeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  typeText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+  destTitle: { fontSize: 20, fontWeight: '800' },
+  destSub: { fontSize: 13, marginTop: 2 },
+  closeBtn: { padding: 4 },
+  actionRow: { flexDirection: 'row', gap: 12 },
+  primaryBtn: { flex: 1, height: 54, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  secondaryBtn: { width: 54, height: 54, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  fabContainer: { position: 'absolute', right: 20, gap: 12 },
   fab: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, justifyContent: 'center', alignItems: 'center', elevation: 8 },
+  emptyContainer: { padding: 20, alignItems: 'center' },
 });
