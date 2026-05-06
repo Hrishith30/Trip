@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, useColorScheme, TouchableOpacity, TextInput, Alert, Dimensions, Linking, Platform, FlatList, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, useColorScheme, TouchableOpacity, TextInput, Alert, Dimensions, Linking, Platform, FlatList, ActivityIndicator, Keyboard } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors } from '../../constants/Colors';
 import { Search, MapPin, LocateFixed, Clock, X, Share2, CornerUpRight, Star, TrendingUp, Compass, Map as MapIcon, Plus } from 'lucide-react-native';
@@ -149,7 +149,9 @@ export default function ExploreScreen() {
         provider={PROVIDER_GOOGLE}
         showsUserLocation={true}
         onRegionChangeComplete={(r) => setRegion(r)}
+        onPanDrag={() => Keyboard.dismiss()}
         onPress={(e) => {
+          Keyboard.dismiss();
           // Extra sensitivity check for Android
           if (e.nativeEvent && e.nativeEvent.coordinate) {
             setDestination({ 
@@ -162,6 +164,7 @@ export default function ExploreScreen() {
           }
         }}
         onLongPress={(e) => {
+          Keyboard.dismiss();
           if (e.nativeEvent && e.nativeEvent.coordinate) {
             setDestination({ 
               id: 'custom-' + Date.now(), 
@@ -173,6 +176,7 @@ export default function ExploreScreen() {
           }
         }}
         onPoiClick={(e) => {
+          Keyboard.dismiss();
           // Instant pinning for buildings/landmarks
           setDestination({
             id: 'poi-' + e.nativeEvent.placeId,

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, useColorScheme, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Play, SkipForward, SkipBack, Repeat, Shuffle, ListMusic, Heart } from 'lucide-react-native';
+import { Play, SkipForward, SkipBack, Repeat, Shuffle, ListMusic, Heart, Search, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TextInput } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,11 @@ export default function MusicScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [isPlaying, setIsPlaying] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredPlaylists = PLAYLISTS.filter(p => 
+    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -25,6 +31,25 @@ export default function MusicScreen() {
           <TouchableOpacity>
             <ListMusic size={24} color={colors.text} />
           </TouchableOpacity>
+        </View>
+
+        {/* Music Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Search size={20} color={colors.tabIconDefault} />
+            <TextInput
+              placeholder="Search playlists or artists..."
+              placeholderTextColor={colors.tabIconDefault}
+              style={[styles.searchInput, { color: colors.text }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={20} color={colors.tabIconDefault} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Featured Player Card */}
@@ -71,15 +96,20 @@ export default function MusicScreen() {
 
         {/* Playlists */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Playlists</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {searchQuery ? 'Search Results' : 'Your Playlists'}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playlistRow}>
-            {PLAYLISTS.map((p) => (
+            {filteredPlaylists.map((p) => (
               <TouchableOpacity key={p.id} style={styles.playlistCard}>
                 <Image source={{ uri: p.cover }} style={styles.playlistCover} />
                 <Text style={[styles.playlistTitle, { color: colors.text }]}>{p.title}</Text>
                 <Text style={[styles.playlistTracks, { color: colors.tabIconDefault }]}>{p.tracks} Tracks</Text>
               </TouchableOpacity>
             ))}
+            {filteredPlaylists.length === 0 && (
+              <Text style={[styles.emptyText, { color: colors.tabIconDefault }]}>No playlists found</Text>
+            )}
           </ScrollView>
         </View>
       </ScrollView>
@@ -91,6 +121,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  searchContainer: { paddingHorizontal: 20, marginBottom: 10 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 15, paddingHorizontal: 15, borderWidth: 1 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, fontWeight: '500' },
   playerCard: { margin: 20, padding: 20, borderRadius: 32, borderWidth: 1, elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15 },
   coverArt: { width: '100%', height: width - 120, borderRadius: 24, marginBottom: 20 },
   trackInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
@@ -111,4 +144,5 @@ const styles = StyleSheet.create({
   playlistCover: { width: 140, height: 140, borderRadius: 20, marginBottom: 10 },
   playlistTitle: { fontSize: 15, fontWeight: '700' },
   playlistTracks: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  emptyText: { paddingHorizontal: 20, fontSize: 16, fontWeight: '500' },
 });

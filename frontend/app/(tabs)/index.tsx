@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { TrendingUp, Users, Search, Bell, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play } from 'lucide-react-native';
+import { TrendingUp, Users, Bell, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 export default function Dashboard() {
   const router = useRouter();
@@ -21,16 +23,16 @@ export default function Dashboard() {
     return 'Under the Stars';
   };
 
-  const StatCard = ({ icon: Icon, value, label, color }: any) => (
-    <View style={[styles.statCard, { backgroundColor: color + '15', borderColor: color + '30' }]}>
-      <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
-        <Icon stroke={color} size={20} />
+  const QuickAction = ({ icon: Icon, label, color, onPress }: any) => (
+    <TouchableOpacity 
+      style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} 
+      onPress={onPress}
+    >
+      <View style={[styles.actionIcon, { backgroundColor: color + '15' }]}>
+        <Icon size={22} color={color} />
       </View>
-      <View>
-        <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-        <Text style={[styles.statLabel, { color: colors.tabIconDefault }]}>{label}</Text>
-      </View>
-    </View>
+      <Text style={[styles.actionLabel, { color: colors.text }]}>{label}</Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -46,361 +48,176 @@ export default function Dashboard() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* Modern Header */}
-        <View style={styles.header}>
+        {/* Cinematic Header */}
+        <View style={styles.heroHeader}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>{getGreeting()},</Text>
+              <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>{getGreeting()}</Text>
               <Text style={[styles.name, { color: colors.text }]}>Hrishith!</Text>
             </View>
-            <TouchableOpacity style={[styles.profileButton, { borderColor: colors.border }]} onPress={() => router.push('/profile')}>
+            <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
               <Image 
                 source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }} 
                 style={styles.avatar} 
               />
+              <View style={[styles.statusIndicator, { backgroundColor: '#10b981' }]} />
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push('/explore')}
-          >
-            <Search size={20} stroke={colors.tabIconDefault} />
-            <Text style={[styles.searchPlaceholder, { color: colors.tabIconDefault }]}>Search trips or destinations...</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Smart Widgets Section (Now only Split) */}
-        <View style={styles.widgetRow}>
-          <TouchableOpacity 
-            style={[styles.fullWidget, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push('/split')}
-          >
-            <View style={[styles.widgetIcon, { backgroundColor: '#10b98120' }]}>
-              <Receipt size={22} color="#10b981" />
-            </View>
-            <View style={styles.widgetMain}>
-              <Text style={[styles.widgetTitle, { color: colors.text, fontSize: 16 }]}>Split Expenses</Text>
-              <Text style={[styles.widgetSub, { color: colors.tabIconDefault, fontSize: 13 }]}>You are owed $240 across 3 trips</Text>
-            </View>
-            <ArrowRight size={20} color={colors.tabIconDefault} />
-          </TouchableOpacity>
-        </View>
+        {/* Dynamic Stats Banner */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.statsScroll}
+        >
+          <View style={[styles.statBanner, { backgroundColor: colors.tint }]}>
+            <StatCard icon={Plane} value="12" label="Global Trips" color="#fff" isDark />
+            <View style={styles.statDivider} />
+            <StatCard icon={Users} value="4" label="Trip Tribes" color="#fff" isDark />
+            <View style={styles.statDivider} />
+            <StatCard icon={MapPin} value="28" label="Places" color="#fff" isDark />
+          </View>
+        </ScrollView>
 
-        {/* Stats Row */}
-        <View style={styles.statsContainer}>
-          <StatCard icon={Plane} value="12" label="Trips" color={colors.tint} />
-          <StatCard icon={Users} value="4" label="Groups" color={colors.secondary} />
-        </View>
-
-        {/* Upcoming Trip Card */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Next Adventure</Text>
+        {/* Featured Adventure */}
+        <View style={styles.sectionTitleRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Adventure</Text>
           <TouchableOpacity onPress={() => router.push('/trips')}>
-            <Text style={[styles.seeAll, { color: colors.tint }]}>View All</Text>
+            <Text style={[styles.seeAll, { color: colors.tint }]}>Itinerary</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={[styles.tripCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={[styles.heroCard, { shadowColor: colors.tint }]}
           onPress={() => router.push('/trips')}
+          activeOpacity={0.9}
         >
           <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=500&auto=format&fit=crop' }} 
-            style={styles.tripImage} 
+            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop' }} 
+            style={styles.heroImage} 
           />
-          <View style={styles.tripBadge}>
-            <Text style={styles.badgeText}>In 3 Days</Text>
-          </View>
-          <View style={styles.tripInfo}>
-            <View>
-              <Text style={[styles.tripName, { color: colors.text }]}>Paris, France</Text>
-              <View style={styles.tripMeta}>
-                <Calendar size={14} stroke={colors.tabIconDefault} />
-                <Text style={[styles.metaText, { color: colors.tabIconDefault }]}>May 12 - May 18</Text>
-              </View>
+          <View style={styles.heroOverlay}>
+            <View style={styles.heroBadge}>
+              <Sparkles size={12} color="#fff" />
+              <Text style={styles.heroBadgeText}>Next Stop: Paris</Text>
             </View>
-            <View style={[styles.tripPrice, { backgroundColor: colors.tint }]}>
-              <Text style={styles.priceText}>$1,200</Text>
+            <View style={styles.heroBottom}>
+              <View>
+                <Text style={styles.heroTitle}>The City of Lights</Text>
+                <Text style={styles.heroSub}>Departure in 3 days • May 12</Text>
+              </View>
+              <View style={styles.heroAction}>
+                <ArrowRight size={20} color={colors.tint} />
+              </View>
             </View>
           </View>
         </TouchableOpacity>
 
-        {/* Recent Activity */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</Text>
+        {/* Quick Actions Grid */}
+        <Text style={[styles.sectionTitle, { color: colors.text, marginHorizontal: 24, marginBottom: 16 }]}>Trip Essentials</Text>
+        <View style={styles.actionGrid}>
+          <QuickAction icon={Receipt} label="Split Bill" color="#10b981" onPress={() => router.push('/split')} />
+          <QuickAction icon={Music} label="Roadmix" color="#8b5cf6" onPress={() => router.push('/music')} />
+          <QuickAction icon={Calendar} label="Plans" color="#f59e0b" onPress={() => router.push('/trips')} />
+          <QuickAction icon={Bell} label="Alerts" color="#ef4444" onPress={() => {}} />
+        </View>
+
+        {/* Recent Activity Log */}
+        <View style={styles.sectionTitleRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Travel Log</Text>
         </View>
         
-        <View style={[styles.activityList, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.activityItem, { borderBottomColor: colors.border }]}>
-            <View style={[styles.activityIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <MapPin size={18} stroke={colors.secondary} />
+        <View style={styles.activityContainer}>
+          {[
+            { title: 'Paris Itinerary', sub: 'Eiffel Tower visit added', time: '2h ago', icon: MapPin, color: '#3b82f6' },
+            { title: 'Tokyo Budget', sub: 'Hotel price dropped by $40', time: '5h ago', icon: TrendingUp, color: '#10b981' }
+          ].map((item, idx) => (
+            <View key={idx} style={[styles.activityLog, { borderBottomWidth: idx === 0 ? 1 : 0, borderBottomColor: colors.border }]}>
+              <View style={[styles.logIcon, { backgroundColor: item.color + '15' }]}>
+                <item.icon size={18} color={item.color} />
+              </View>
+              <View style={styles.logMain}>
+                <Text style={[styles.logTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text style={[styles.logSub, { color: colors.tabIconDefault }]}>{item.sub}</Text>
+              </View>
+              <Text style={styles.logTime}>{item.time}</Text>
             </View>
-            <View style={styles.activityMain}>
-              <Text style={[styles.activityTitle, { color: colors.text }]}>Destination Added</Text>
-              <Text style={[styles.activitySub, { color: colors.tabIconDefault }]}>Eiffel Tower was added to Paris trip</Text>
-            </View>
-          </View>
-          <View style={[styles.activityItem, { borderBottomWidth: 0 }]}>
-            <View style={[styles.activityIcon, { backgroundColor: colors.tint + '20' }]}>
-              <TrendingUp size={18} stroke={colors.tint} />
-            </View>
-            <View style={styles.activityMain}>
-              <Text style={[styles.activityTitle, { color: colors.text }]}>Budget Updated</Text>
-              <Text style={[styles.activitySub, { color: colors.tabIconDefault }]}>New flight prices found for Tokyo</Text>
-            </View>
-          </View>
+          ))}
         </View>
       </Animated.ScrollView>
 
-      {/* Floating Music Hub */}
+      {/* Modern Music FAB */}
       <TouchableOpacity 
         style={[styles.musicFab, { backgroundColor: colors.tint, shadowColor: colors.tint }]}
         activeOpacity={0.8}
         onPress={() => router.push('/music')}
       >
         <Music size={24} color="#fff" />
-        <View style={styles.playingIndicator}>
-          <Play size={10} color={colors.tint} fill={colors.tint} />
-        </View>
+        <View style={styles.playingPulse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
+const StatCard = ({ icon: Icon, value, label, color, isDark }: any) => (
+  <View style={styles.statItem}>
+    <View style={[styles.statIconWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : color + '15' }]}>
+      <Icon size={18} color={color} />
+    </View>
+    <View>
+      <Text style={[styles.statNum, { color: isDark ? '#fff' : '#000' }]}>{value}</Text>
+      <Text style={[styles.statDesc, { color: isDark ? 'rgba(255,255,255,0.7)' : '#666' }]}>{label}</Text>
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  musicFab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 25,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  playingIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  header: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 25,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  greeting: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  profileButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 2,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 16,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 54,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-  },
-  searchPlaceholder: {
-    marginLeft: 12,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  widgetRow: {
-    paddingHorizontal: 20,
-    marginBottom: 25,
-  },
-  fullWidget: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 16,
-  },
-  widgetIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  widgetMain: {
-    flex: 1,
-  },
-  widgetTitle: {
-    fontWeight: '800',
-  },
-  widgetSub: {
-    marginTop: 2,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 30,
-    marginTop: 10,
-  },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 12,
-  },
-  statIconContainer: {
-    padding: 10,
-    borderRadius: 14,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  tripCard: {
-    marginHorizontal: 20,
-    borderRadius: 28,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 30,
-  },
-  tripImage: {
-    width: '100%',
-    height: 180,
-  },
-  tripBadge: {
-    position: 'absolute',
-    top: 15,
-    left: 15,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  tripInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-  },
-  tripName: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  tripMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  tripPrice: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  priceText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  activityList: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 4,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    padding: 16,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-  },
-  activityIcon: {
-    padding: 10,
-    borderRadius: 12,
-  },
-  activityMain: {
-    marginLeft: 14,
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  activitySub: {
-    fontSize: 13,
-    marginTop: 2,
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
+  heroHeader: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: 20 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  greeting: { fontSize: 16, fontWeight: '600', letterSpacing: 0.5 },
+  name: { fontSize: 32, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
+  profileBtn: { width: 54, height: 54, borderRadius: 20, padding: 2 },
+  avatar: { width: '100%', height: '100%', borderRadius: 18 },
+  statusIndicator: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
+  
+  statsScroll: { paddingLeft: 24, paddingRight: 24, marginBottom: 32 },
+  statBanner: { flexDirection: 'row', padding: 16, borderRadius: 28, elevation: 12, shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  statNum: { fontSize: 18, fontWeight: '800' },
+  statDesc: { fontSize: 10, fontWeight: '600', marginTop: 1 },
+  statDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 15 },
+
+  sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
+  sectionTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  seeAll: { fontSize: 14, fontWeight: '700' },
+
+  heroCard: { marginHorizontal: 24, height: 240, borderRadius: 32, overflow: 'hidden', marginBottom: 32, elevation: 20, shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
+  heroImage: { width: '100%', height: '100%' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', padding: 24, justifyContent: 'space-between' },
+  heroBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  heroBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  heroBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  heroTitle: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', marginTop: 4 },
+  heroAction: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 18, marginBottom: 32 },
+  actionCard: { width: (width - 60) / 2, margin: 6, padding: 20, borderRadius: 24, borderWidth: 1, alignItems: 'center', gap: 12 },
+  actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  actionLabel: { fontSize: 14, fontWeight: '700' },
+
+  activityContainer: { marginHorizontal: 24, borderRadius: 32, borderWidth: 1, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.02)' },
+  activityLog: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
+  logIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  logMain: { flex: 1 },
+  logTitle: { fontSize: 16, fontWeight: '700' },
+  logSub: { fontSize: 13, marginTop: 2, fontWeight: '500' },
+  logTime: { fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: '600' },
+
+  musicFab: { position: 'absolute', bottom: 30, right: 25, width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', elevation: 12, shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
+  playingPulse: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 34, borderWidth: 2, borderColor: '#fff', opacity: 0.3 },
 });
