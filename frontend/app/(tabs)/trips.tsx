@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard, PanResponder } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle, CheckCircle2, Circle, ListTodo } from 'lucide-react-native';
@@ -73,7 +74,33 @@ interface Trip {
 
 export default function TripsScreen() {
   const { isDarkMode, colors } = useTheme();
+  const router = useRouter();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const isAtTop = useRef(true);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Platform.OS === 'android' && isAtTop.current && gestureState.dy > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          scrollY.setValue(-gestureState.dy * 0.8);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120) {
+          handleRefresh();
+        }
+        Animated.spring(scrollY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 40,
+          friction: 8
+        }).start();
+      },
+    })
+  ).current;
 
   // State Management
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
@@ -90,7 +117,42 @@ export default function TripsScreen() {
   const [pickingDateType, setPickingDateType] = useState<'start' | 'end'>('start');
   const [tempDate, setTempDate] = useState(new Date());
   const [minPickerDate, setMinPickerDate] = useState(new Date());
+  const params = useLocalSearchParams();
   const searchTimer = useRef<any>(null);
+
+  const getDaysToGo = (dateStr: string) => {
+    const today = new Date();
+    const tripDate = safeDate(dateStr);
+    if (!tripDate) return 'UPCOMING';
+    
+    const diffTime = tripDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 7 && diffDays > 0) {
+      return `${diffDays} DAYS TO GO`;
+    }
+    return 'UPCOMING';
+  };
+
+  useEffect(() => {
+    console.log('Trips Params:', params);
+    if (params.openItinerary === '1') {
+      const swissTrip = trips.find(t => t.id === '1');
+      if (swissTrip) {
+        // Small delay to ensure tab transition is stable
+        setTimeout(() => {
+          handleOpenItinerary(swissTrip);
+        }, 100);
+        router.setParams({ openItinerary: undefined });
+      }
+    } else if (params.addNew === '1') {
+      // Small delay to ensure tab transition is stable
+      setTimeout(() => {
+        handleOpenModal();
+      }, 100);
+      router.setParams({ addNew: undefined });
+    }
+  }, [params.openItinerary, params.addNew]);
 
   // Itinerary Form State
   const [itineraryFormVisible, setItineraryFormVisible] = useState(false);
@@ -524,7 +586,7 @@ export default function TripsScreen() {
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <View style={styles.headerLeft}>
-            <Text style={[styles.tripStatus, { color: colors.tint }]}>{item.status}</Text>
+            <Text style={[styles.tripStatus, { color: colors.tint }]}>{getDaysToGo(item.startDate)}</Text>
             <Text style={[styles.tripName, { color: colors.text }]}>{item.name}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -562,26 +624,36 @@ export default function TripsScreen() {
     </TouchableOpacity>
   );
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { 
+      useNativeDriver: true,
+      listener: (event: any) => {
+        isAtTop.current = event.nativeEvent.contentOffset.y <= 0;
+      }
+    }
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
 
-      <Animated.FlatList
-        data={trips}
-        renderItem={renderTrip}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        onScrollEndDrag={(e) => {
-          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
-            handleRefresh();
-          }
-        }}
-        scrollEventThrottle={16}
-        ListHeaderComponent={() => (
+      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+        <Animated.FlatList
+          data={trips}
+          renderItem={renderTrip}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          onScroll={handleScroll}
+          onScrollEndDrag={(e) => {
+            if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+              handleRefresh();
+            }
+          }}
+          scrollEventThrottle={16}
+          overScrollMode="never"
+          bounces={true}
+          ListHeaderComponent={() => (
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>My Trips</Text>
             <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Manage your global adventures</Text>
@@ -1157,6 +1229,7 @@ export default function TripsScreen() {
         </Modal>
       </Modal>
 
+      </View>
     </SafeAreaView>
   );
 }

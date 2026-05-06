@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions, PanResponder, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles, Compass } from 'lucide-react-native';
+import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles, Compass, Plus } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,7 +15,32 @@ export default function Dashboard() {
   const { colors } = useTheme();
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Platform.OS === 'android' && isAtTop.current && gestureState.dy > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          scrollY.setValue(-gestureState.dy * 0.8);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120) {
+          handleRefresh();
+        }
+        Animated.spring(scrollY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 40,
+          friction: 8
+        }).start();
+      },
+    })
+  ).current;
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -33,6 +58,18 @@ export default function Dashboard() {
     return 'Under the Stars';
   };
 
+  const getDaysToGo = (dateStr: string) => {
+    const today = new Date();
+    const tripDate = new Date(dateStr);
+    const diffTime = tripDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 7 && diffDays > 0) {
+      return `${diffDays} DAYS TO GO`;
+    }
+    return 'UPCOMING';
+  };
+
   const QuickAction = ({ icon: Icon, label, color, onPress }: any) => (
     <TouchableOpacity
       style={[styles.actionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -45,25 +82,34 @@ export default function Dashboard() {
     </TouchableOpacity>
   );
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { 
+      useNativeDriver: true,
+      listener: (event: any) => {
+        isAtTop.current = event.nativeEvent.contentOffset.y <= 0;
+      }
+    }
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
-
-      <Animated.ScrollView
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
-        style={{ backgroundColor: colors.background }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        onScrollEndDrag={(e) => {
-          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
-            handleRefresh();
-          }
-        }}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+        <Animated.ScrollView
+          contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
+          style={{ backgroundColor: colors.background }}
+          onScroll={handleScroll}
+          onScrollEndDrag={(e) => {
+            if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+              handleRefresh();
+            }
+          }}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+          bounces={true}
+        >
         {/* Cinematic Header */}
         <View style={styles.heroHeader}>
           <View style={[styles.profileHub, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -81,71 +127,64 @@ export default function Dashboard() {
           </View>
         </View>
 
-        {/* Featured Adventure */}
+        {/* Featured Adventure Header */}
         <View style={styles.sectionTitleRow}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Adventure</Text>
-          <TouchableOpacity onPress={() => router.push('/trips')}>
-            <Text style={[styles.seeAll, { color: colors.tint }]}>Itinerary</Text>
+          <TouchableOpacity 
+            style={styles.headerActionBtn} 
+            onPress={() => router.push('/trips')}
+          >
+            <Text style={[styles.seeAll, { color: colors.tint }]}>See All</Text>
+            <ArrowRight size={14} color={colors.tint} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.heroCard, { shadowColor: colors.tint }]}
-          onPress={() => router.push('/trips')}
+        <TouchableOpacity 
+          style={styles.heroCard}
           activeOpacity={0.9}
+          onPress={() => router.push('/trips?openItinerary=1')}
         >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop' }}
-            style={styles.heroImage}
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=800&auto=format&fit=crop' }} 
+            style={styles.heroImage} 
           />
           <View style={styles.heroOverlay}>
             <View style={styles.heroBadge}>
-              <Sparkles size={12} color="#fff" />
-              <Text style={styles.heroBadgeText}>Next Stop: Paris</Text>
+              <Sparkles size={14} color="#fff" />
+              <Text style={styles.heroBadgeText}>{getDaysToGo('2026-07-15')}</Text>
             </View>
+
             <View style={styles.heroBottom}>
               <View>
-                <Text style={styles.heroTitle}>The City of Lights</Text>
-                <Text style={styles.heroSub}>Departure in 3 days • May 12</Text>
+                <Text style={styles.heroTitle}>Swiss Alps</Text>
+                <Text style={styles.heroSub}>Adventure in Zermatt</Text>
               </View>
               <View style={styles.heroAction}>
-                <ArrowRight size={20} color={colors.tint} />
+                <ArrowRight size={20} color="#000" />
               </View>
             </View>
           </View>
         </TouchableOpacity>
 
         {/* Quick Actions Grid */}
-        <Text style={[styles.sectionTitle, { color: colors.text, marginHorizontal: 24, marginBottom: 16 }]}>Trip Essentials</Text>
+        <View style={[styles.sectionTitleRow, { marginTop: 8 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Trip Essentials</Text>
+          <TouchableOpacity 
+            style={[styles.headerActionBtn, { backgroundColor: colors.tint + '15' }]} 
+            onPress={() => router.push('/trips?addNew=1')}
+          >
+            <Plus size={14} color={colors.tint} strokeWidth={3} />
+            <Text style={[styles.seeAll, { color: colors.tint, marginLeft: 4 }]}>New Trip</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.actionGrid}>
           <QuickAction icon={Receipt} label="Split Bill" color="#10b981" onPress={() => router.push('/split')} />
           <QuickAction icon={Music} label="Roadmix" color="#8b5cf6" onPress={() => router.push('/music')} />
           <QuickAction icon={Calendar} label="Plans" color="#f59e0b" onPress={() => router.push('/trips')} />
-          <QuickAction icon={Compass} label="Explore" color="#0ea5e9" onPress={() => router.push('/explore')} />
+          <QuickAction icon={Compass} label="Find" color="#0ea5e9" onPress={() => router.push('/explore')} />
         </View>
 
-        {/* Recent Activity Log */}
-        <View style={styles.sectionTitleRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Travel Log</Text>
-        </View>
 
-        <View style={styles.activityContainer}>
-          {[
-            { title: 'Paris Itinerary', sub: 'Eiffel Tower visit added', time: '2h ago', icon: MapPin, color: '#3b82f6' },
-            { title: 'Tokyo Budget', sub: 'Hotel price dropped by $40', time: '5h ago', icon: TrendingUp, color: '#10b981' }
-          ].map((item, idx) => (
-            <View key={idx} style={[styles.activityLog, { borderBottomWidth: idx === 0 ? 1 : 0, borderBottomColor: colors.border }]}>
-              <View style={[styles.logIcon, { backgroundColor: item.color + '15' }]}>
-                <item.icon size={18} color={item.color} />
-              </View>
-              <View style={styles.logMain}>
-                <Text style={[styles.logTitle, { color: colors.text }]}>{item.title}</Text>
-                <Text style={[styles.logSub, { color: colors.tabIconDefault }]}>{item.sub}</Text>
-              </View>
-              <Text style={styles.logTime}>{item.time}</Text>
-            </View>
-          ))}
-        </View>
       </Animated.ScrollView>
 
       {/* Modern Music FAB */}
@@ -157,6 +196,7 @@ export default function Dashboard() {
         <Music size={24} color="#fff" />
         <View style={styles.playingPulse} />
       </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -176,8 +216,9 @@ const styles = StyleSheet.create({
 
 
   sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
-  sectionTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  seeAll: { fontSize: 14, fontWeight: '700' },
+  sectionTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  headerActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12 },
+  seeAll: { fontSize: 13, fontWeight: '800' },
 
   heroCard: { marginHorizontal: 24, height: 240, borderRadius: 32, overflow: 'hidden', marginBottom: 32, elevation: 20, shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
   heroImage: { width: '100%', height: '100%' },
@@ -194,13 +235,7 @@ const styles = StyleSheet.create({
   actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   actionLabel: { fontSize: 14, fontWeight: '700' },
 
-  activityContainer: { marginHorizontal: 24, borderRadius: 32, overflow: 'hidden' },
-  activityLog: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 16 },
-  logIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  logMain: { flex: 1 },
-  logTitle: { fontSize: 16, fontWeight: '700' },
-  logSub: { fontSize: 13, marginTop: 2, fontWeight: '500' },
-  logTime: { fontSize: 12, color: 'rgba(0,0,0,0.4)', fontWeight: '600' },
+
 
   musicFab: { position: 'absolute', bottom: 30, right: 25, width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', elevation: 12, shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
   playingPulse: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 34, borderWidth: 2, borderColor: '#fff', opacity: 0.3 },

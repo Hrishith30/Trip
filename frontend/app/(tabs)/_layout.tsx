@@ -37,13 +37,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Home size={22} stroke={color} />,
         }}
       />
+
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <Compass size={22} stroke={color} />,
+          href: null,
         }}
       />
+
       <Tabs.Screen
         name="trips"
         options={{

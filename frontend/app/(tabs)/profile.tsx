@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert } from 'react-native';
 import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
@@ -10,7 +10,40 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { themeMode, setThemeMode, isDarkMode, colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Platform.OS === 'android' && isAtTop.current && gestureState.dy > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          scrollY.setValue(-gestureState.dy * 0.8);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120) {
+          handleRefresh();
+        }
+        Animated.spring(scrollY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 40,
+          friction: 8
+        }).start();
+      },
+    })
+  ).current;
+
+  const handlePlaceholderPress = (feature: string) => {
+    Alert.alert(
+      feature,
+      `The ${feature} module is currently in development for v1.1. Stay tuned!`,
+      [{ text: 'Great!' }]
+    );
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -35,91 +68,108 @@ export default function ProfileScreen() {
     </TouchableOpacity>
   );
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { 
+      useNativeDriver: true,
+      listener: (event: any) => {
+        isAtTop.current = event.nativeEvent.contentOffset.y <= 0;
+      }
+    }
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
 
-      <Animated.ScrollView 
-        contentContainerStyle={styles.content}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        onScrollEndDrag={(e) => {
-          if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
-            handleRefresh();
-          }
-        }}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
-            <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Your travel identity</Text>
+      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+        <Animated.ScrollView 
+          contentContainerStyle={styles.content}
+          onScroll={handleScroll}
+          onScrollEndDrag={(e) => {
+            if (e.nativeEvent.contentOffset.y < -100 && !refreshing) {
+              handleRefresh();
+            }
+          }}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+          bounces={true}
+        >
+          <View style={styles.header}>
+            <View>
+              <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
+              <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Your travel identity</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.settingsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push('/settings/personal')}
+            >
+              <Settings size={20} color={colors.text} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Settings size={20} color={colors.text} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.profileHeader}>
-          <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop' }} 
-              style={styles.avatar} 
+          <View style={styles.profileHeader}>
+            <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
+              <Image 
+                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop' }} 
+                style={styles.avatar} 
+              />
+            </View>
+            <Text style={[styles.userName, { color: colors.text }]}>Hrishith</Text>
+            <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>hrishith@example.com</Text>
+            <TouchableOpacity 
+              style={[styles.editButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push('/settings/edit-profile')}
+            >
+              <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Account</Text>
+            <ProfileItem icon={User} label="Personal Information" onPress={() => router.push('/settings/personal')} />
+            <ProfileItem icon={Bell} label="Notifications" onPress={() => router.push('/settings/notifications')} />
+            <ProfileItem icon={Shield} label="Privacy & Security" onPress={() => router.push('/settings/privacy')} />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Appearance</Text>
+            <View style={[styles.themeSelector, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+              {(['light', 'auto', 'dark'] as const).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.themeOption,
+                    themeMode === mode && { backgroundColor: colors.card, elevation: 4, shadowOpacity: 0.1, shadowRadius: 10 }
+                  ]}
+                  onPress={() => setThemeMode(mode)}
+                >
+                  <Text style={[
+                    styles.themeText,
+                    { color: themeMode === mode ? colors.tint : colors.tabIconDefault }
+                  ]}>
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Support</Text>
+            <ProfileItem icon={HelpCircle} label="Help Center" onPress={() => router.push('/settings/help')} />
+            <ProfileItem 
+              icon={LogOut} 
+              label="Log Out" 
+              color="#ef4444" 
+              onPress={() => router.replace('/(auth)/login')} 
             />
           </View>
-          <Text style={[styles.userName, { color: colors.text }]}>Hrishith</Text>
-          <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>hrishith@example.com</Text>
-          <TouchableOpacity style={[styles.editButton, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Account</Text>
-          <ProfileItem icon={User} label="Personal Information" />
-          <ProfileItem icon={Bell} label="Notifications" />
-          <ProfileItem icon={Shield} label="Privacy & Security" />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Appearance</Text>
-          <View style={[styles.themeSelector, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
-            {(['light', 'auto', 'dark'] as const).map((mode) => (
-              <TouchableOpacity
-                key={mode}
-                style={[
-                  styles.themeOption,
-                  themeMode === mode && { backgroundColor: colors.card, elevation: 4, shadowOpacity: 0.1, shadowRadius: 10 }
-                ]}
-                onPress={() => setThemeMode(mode)}
-              >
-                <Text style={[
-                  styles.themeText,
-                  { color: themeMode === mode ? colors.tint : colors.tabIconDefault }
-                ]}>
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Support</Text>
-          <ProfileItem icon={HelpCircle} label="Help Center" />
-          <ProfileItem 
-            icon={LogOut} 
-            label="Log Out" 
-            color="#ef4444" 
-            onPress={() => router.replace('/(auth)/login')} 
-          />
-        </View>
-
-        <Text style={styles.version}>Wayfarer v1.0.0</Text>
-      </Animated.ScrollView>
+          <Text style={styles.version}>Wayfarer v1.0.0</Text>
+        </Animated.ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
