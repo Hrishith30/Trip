@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
+import CustomDatePicker from '../../components/CustomDatePicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const INITIAL_TRIPS = [
@@ -266,12 +267,12 @@ export default function TripsScreen() {
     setPickingDateType(type as any);
     setTempDate(initialDate);
     setMinPickerDate(minDate);
-    // Overload minPickerDate to store max too for simplicity or use another state
-    // For now we'll use a hacky way or just use the local modal logic
-    
-    setTimeout(() => {
+
+    if (type === 'activity') {
+      setShowActivityDatePicker(true);
+    } else {
       setShowDatePicker(true);
-    }, 150);
+    }
   };
 
   const handleOpenModal = (trip: any = null) => {
@@ -593,6 +594,7 @@ export default function TripsScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+
               </View>
 
               <TouchableOpacity
@@ -604,53 +606,23 @@ export default function TripsScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Trip Date Picker (for start/end dates only, shown outside itinerary modal) */}
-      {Platform.OS === 'android' && showDatePicker && (
-        <DateTimePicker
-          key={`${pickingDateType}-android`}
+        
+        {/* ── Trip Date Picker ── */}
+        <CustomDatePicker
+          visible={showDatePicker}
+          title={pickingDateType === 'start' ? 'Select Departure' : 'Select Return'}
           value={tempDate}
-          mode="date"
-          display="default"
-          minimumDate={pickingDateType === 'end' ? minPickerDate : undefined}
-          onChange={(event, date) => {
-            if (event.type === 'dismissed') { setShowDatePicker(false); return; }
-            if (date) confirmDate(date);
-          }}
+          minimumDate={pickingDateType === 'end' ? minPickerDate : null}
+          maximumDate={null}
+          onClose={() => setShowDatePicker(false)}
+          onConfirm={(d) => confirmDate(d)}
+          accentColor={colors.tint}
+          textColor={colors.text}
+          bgColor={colors.card}
+          borderColor={colors.border}
+          mutedColor={colors.tabIconDefault}
         />
-      )}
-      {Platform.OS === 'ios' && (
-        <Modal visible={showDatePicker} transparent animationType="fade">
-          <TouchableOpacity
-            style={styles.datePickerOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDatePicker(false)}
-          >
-            <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.pickerHeader}>
-                <Text style={[styles.pickerTitle, { color: colors.text }]}>
-                  Select {pickingDateType === 'start' ? 'Departure' : 'Return'}
-                </Text>
-                <TouchableOpacity onPress={() => confirmDate(tempDate)}>
-                  <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                key={`${pickingDateType}-${minPickerDate.getTime()}`}
-                value={tempDate}
-                mode="date"
-                display="inline"
-                minimumDate={pickingDateType === 'end' ? minPickerDate : undefined}
-                themeVariant={isDarkMode ? 'dark' : 'light'}
-                accentColor={colors.tint}
-                onChange={onDateChange}
-                style={{ width: '100%', alignSelf: 'center' }}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
+      </Modal>
 
       {/* Itinerary Modal */}
       <Modal visible={itineraryModalVisible} animationType="slide" transparent>
@@ -702,61 +674,8 @@ export default function TripsScreen() {
                           </Text>
                         </TouchableOpacity>
 
-                        {/* Activity Date Picker — rendered INSIDE the modal so it appears above it */}
-                        {Platform.OS === 'android' && showActivityDatePicker && (
-                          <DateTimePicker
-                            value={safeDate(itineraryFormData.date) || safeDate(selectedTrip?.startDate) || new Date()}
-                            mode="date"
-                            display="default"
-                            minimumDate={safeDate(selectedTrip?.startDate) || undefined}
-                            maximumDate={safeDate(selectedTrip?.endDate) || undefined}
-                            onChange={(event, date) => {
-                              setShowActivityDatePicker(false);
-                              if (event.type === 'dismissed') return;
-                              if (date) {
-                                const y = date.getFullYear();
-                                const m = String(date.getMonth() + 1).padStart(2, '0');
-                                const d = String(date.getDate()).padStart(2, '0');
-                                setItineraryFormData(f => ({ ...f, date: `${y}-${m}-${d}` }));
-                              }
-                            }}
-                          />
-                        )}
-                      </View>
 
-                      {/* iOS Activity Date Picker sheet */}
-                      {Platform.OS === 'ios' && (
-                        <Modal visible={showActivityDatePicker} transparent animationType="fade">
-                          <TouchableOpacity style={styles.datePickerOverlay} activeOpacity={1} onPress={() => setShowActivityDatePicker(false)}>
-                            <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                              <View style={styles.pickerHeader}>
-                                <Text style={[styles.pickerTitle, { color: colors.text }]}>Select Activity Day</Text>
-                                <TouchableOpacity onPress={() => setShowActivityDatePicker(false)}>
-                                  <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
-                                </TouchableOpacity>
-                              </View>
-                              <DateTimePicker
-                                value={safeDate(itineraryFormData.date) || safeDate(selectedTrip?.startDate) || new Date()}
-                                mode="date"
-                                display="inline"
-                                minimumDate={safeDate(selectedTrip?.startDate) || undefined}
-                                maximumDate={safeDate(selectedTrip?.endDate) || undefined}
-                                themeVariant={isDarkMode ? 'dark' : 'light'}
-                                accentColor={colors.tint}
-                                onChange={(event, date) => {
-                                  if (date) {
-                                    const y = date.getFullYear();
-                                    const m = String(date.getMonth() + 1).padStart(2, '0');
-                                    const d = String(date.getDate()).padStart(2, '0');
-                                    setItineraryFormData(f => ({ ...f, date: `${y}-${m}-${d}` }));
-                                  }
-                                }}
-                                style={{ width: '100%', alignSelf: 'center' }}
-                              />
-                            </View>
-                          </TouchableOpacity>
-                        </Modal>
-                      )}
+                      </View>
                       <View style={{ width: 12 }} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.label, { color: colors.tabIconDefault }]}>Time</Text>
@@ -919,9 +838,30 @@ export default function TripsScreen() {
             </KeyboardAvoidingView>
           </View>
         </View>
+
+        {/* ── Activity Date Picker ── */}
+        <CustomDatePicker
+          visible={showActivityDatePicker}
+          title="Select Activity Day"
+          value={safeDate(itineraryFormData.date) || safeDate(selectedTrip?.startDate) || new Date()}
+          minimumDate={safeDate(selectedTrip?.startDate)}
+          maximumDate={safeDate(selectedTrip?.endDate)}
+          onClose={() => setShowActivityDatePicker(false)}
+          onConfirm={(d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            setItineraryFormData(f => ({ ...f, date: `${y}-${m}-${day}` }));
+            setShowActivityDatePicker(false);
+          }}
+          accentColor={colors.tint}
+          textColor={colors.text}
+          bgColor={colors.card}
+          borderColor={colors.border}
+          mutedColor={colors.tabIconDefault}
+        />
       </Modal>
 
-      {/* Activity Editor Modal removed - now integrated */}
     </SafeAreaView>
   );
 }
@@ -1008,10 +948,11 @@ const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'flex-end' },
   dateSubLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  datePickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  datePickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  datePickerPopup: { width: '100%', maxWidth: 380, borderRadius: 24, borderWidth: 1, overflow: 'hidden', paddingHorizontal: 4, paddingBottom: 12 },
   datePickerContainer: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40, borderWidth: 1, borderBottomWidth: 0 },
-  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  pickerTitle: { fontSize: 18, fontWeight: '800' },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14, borderBottomWidth: 1 },
+  pickerTitle: { fontSize: 17, fontWeight: '800' },
 
   modalImageContainer: { height: 200, width: '100%', borderRadius: 24, overflow: 'hidden', marginBottom: 24, position: 'relative' },
   modalImage: { width: '100%', height: '100%' },
