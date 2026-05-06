@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animat
 import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const TRIPS = [
   {
@@ -64,7 +65,7 @@ export default function TripsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
       
       <Animated.FlatList
@@ -84,7 +85,7 @@ export default function TripsScreen() {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -94,63 +95,66 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingTop: 100,
+    paddingTop: 10,
   },
   header: {
     marginBottom: 24,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 4,
+    fontWeight: '500',
   },
   card: {
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     marginBottom: 20,
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 10,
   },
   cardImage: {
     width: '100%',
-    height: 150,
+    height: 180,
   },
   cardContent: {
-    padding: 16,
+    padding: 20,
   },
   cardHeader: {
     marginBottom: 12,
   },
   tripStatus: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 11,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    letterSpacing: 1,
+    marginBottom: 6,
   },
   tripName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginBottom: 6,
   },
   infoText: {
     fontSize: 14,
+    fontWeight: '500',
   },
   detailsButton: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -158,6 +162,6 @@ const styles = StyleSheet.create({
   },
   detailsText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated } fr
 import { Colors } from '../../constants/Colors';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Receipt, Users } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SplitScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -10,7 +11,7 @@ export default function SplitScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
 
       <Animated.ScrollView 
@@ -20,7 +21,13 @@ export default function SplitScreen() {
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>Split Bills</Text>
+          <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Manage shared travel costs</Text>
+        </View>
+
         {/* Balance Summary Card */}
         <View style={[styles.balanceCard, { backgroundColor: colors.tint }]}>
           <View style={styles.balanceHeader}>
@@ -106,7 +113,7 @@ export default function SplitScreen() {
           </View>
         ))}
       </Animated.ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -116,17 +123,30 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingTop: 100,
+    paddingTop: 10,
+  },
+  header: {
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    marginTop: 4,
+    fontWeight: '500',
   },
   balanceCard: {
     padding: 24,
     borderRadius: 24,
     marginBottom: 24,
-    elevation: 8,
+    elevation: 12,
     shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowRadius: 15,
   },
   balanceHeader: {
     flexDirection: 'row',
@@ -141,7 +161,7 @@ const styles = StyleSheet.create({
   },
   balanceAmount: {
     color: '#fff',
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     marginBottom: 20,
   },
@@ -156,8 +176,8 @@ const styles = StyleSheet.create({
   },
   balanceStatText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
   actionRow: {
     flexDirection: 'row',
@@ -171,62 +191,62 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
   },
   actionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 16,
   },
   groupCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 20,
     borderWidth: 1,
     marginBottom: 12,
   },
   groupInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
   },
   groupName: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
   },
   groupMembers: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
   },
   groupBalance: {
     alignItems: 'flex-end',
   },
   oweText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
   oweAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
     marginTop: 2,
   },
   expenseItem: {
@@ -243,22 +263,22 @@ const styles = StyleSheet.create({
   },
   dateBox: {
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
   dateMonth: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   dateDay: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
   },
   expenseTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   expenseSub: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
   },
   expenseRight: {
@@ -266,10 +286,11 @@ const styles = StyleSheet.create({
   },
   expenseYouLent: {
     fontSize: 11,
+    fontWeight: '500',
   },
   expenseAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '800',
     marginTop: 2,
   },
 });

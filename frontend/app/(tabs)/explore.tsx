@@ -4,6 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors } from '../../constants/Colors';
 import { Search, MapPin, LocateFixed } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ExploreScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -67,7 +68,7 @@ export default function ExploreScreen() {
       </MapView>
 
       {/* Floating Search Bar */}
-      <View style={styles.searchContainer}>
+      <SafeAreaView style={styles.searchContainer} edges={['top']}>
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Search size={20} stroke={colors.tabIconDefault} />
           <TextInput
@@ -76,7 +77,7 @@ export default function ExploreScreen() {
             style={[styles.searchInput, { color: colors.text }]}
           />
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* Floating Action Buttons */}
       <View style={styles.fabContainer}>
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { width: '100%', height: '100%' },
   marker: { padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
-  searchContainer: { position: 'absolute', top: 60, left: 20, right: 20 },
+  searchContainer: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 10 },
   searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 54, borderRadius: 16, borderWidth: 1, elevation: 10 },
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '500' },
   fabContainer: { position: 'absolute', bottom: 40, right: 20, gap: 12 },

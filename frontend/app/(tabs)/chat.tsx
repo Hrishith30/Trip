@@ -219,7 +219,10 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
+          <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>Connect with your travel tribe</Text>
+        </View>
         <TouchableOpacity style={[styles.plusBtn, { backgroundColor: colors.tint + '15' }]}>
           <Plus size={24} color={colors.tint} />
         </TouchableOpacity>
@@ -249,6 +252,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, marginTop: 4, fontWeight: '500' },
   plusBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 10, marginBottom: 20, paddingHorizontal: 16, height: 50, borderRadius: 16, borderWidth: 1 },
   searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '500' },

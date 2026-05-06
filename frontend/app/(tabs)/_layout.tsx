@@ -33,49 +33,48 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Home size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <Home size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color }) => <Compass size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <Compass size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat',
-          tabBarIcon: ({ color }) => <MessageCircle size={20} stroke={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="music"
-        options={{
-          title: 'Music',
-          tabBarIcon: ({ color }) => <Music size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <MessageCircle size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
         name="trips"
         options={{
           title: 'Trips',
-          tabBarIcon: ({ color }) => <Plane size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <Plane size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
         name="split"
         options={{
           title: 'Split',
-          tabBarIcon: ({ color }) => <Receipt size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <Receipt size={22} stroke={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <User size={20} stroke={color} />,
+          tabBarIcon: ({ color }) => <User size={22} stroke={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="music"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

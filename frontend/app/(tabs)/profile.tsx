@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
 
       <Animated.ScrollView 
@@ -37,7 +38,15 @@ export default function ProfileScreen() {
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
+          <TouchableOpacity style={[styles.settingsBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Settings size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.profileHeader}>
           <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
             <Image 
@@ -54,7 +63,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Account</Text>
-          <ProfileItem icon={Settings} label="Settings" />
+          <ProfileItem icon={User} label="Personal Information" />
           <ProfileItem icon={Bell} label="Notifications" />
           <ProfileItem icon={Shield} label="Privacy & Security" />
         </View>
@@ -70,9 +79,9 @@ export default function ProfileScreen() {
           />
         </View>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Wayfarer v1.0.0</Text>
       </Animated.ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -82,11 +91,31 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingTop: 100,
+    paddingTop: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   profileHeader: {
     alignItems: 'center',
     marginBottom: 40,
+    marginTop: 10,
   },
   avatarContainer: {
     padding: 4,
@@ -101,31 +130,32 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 4,
+    fontWeight: '500',
   },
   editButton: {
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
   },
   editButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginBottom: 12,
     paddingLeft: 4,
   },
@@ -133,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderBottomWidth: 1,
   },
   itemLeft: {
@@ -142,21 +172,22 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   itemLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   version: {
     textAlign: 'center',
     color: '#9ca3af',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 10,
     marginBottom: 40,
   },
 });
