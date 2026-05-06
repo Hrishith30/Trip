@@ -1,8 +1,23 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { ChevronLeft, User, Mail, Phone, MapPin } from 'lucide-react-native';
+
+const InfoField = ({ label, value, onChangeText, icon: Icon, colors }: any) => (
+  <View style={[styles.fieldContainer, { borderBottomColor: colors.border }]}>
+    <View style={styles.labelRow}>
+      <Icon size={16} color={colors.tabIconDefault} />
+      <Text style={[styles.label, { color: colors.tabIconDefault }]}>{label}</Text>
+    </View>
+    <TextInput 
+      style={[styles.input, { color: colors.text }]}
+      value={value}
+      onChangeText={onChangeText}
+      editable={true}
+    />
+  </View>
+);
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
@@ -12,21 +27,21 @@ export default function PersonalInfoScreen() {
   const [email, setEmail] = React.useState('hrishith@example.com');
   const [phone, setPhone] = React.useState('+1 (555) 000-0000');
   const [location, setLocation] = React.useState('New York, USA');
+  const [isSaving, setIsSaving] = React.useState(false);
 
-  const InfoField = ({ label, value, onChangeText, icon: Icon }: any) => (
-    <View style={[styles.fieldContainer, { borderBottomColor: colors.border }]}>
-      <View style={styles.labelRow}>
-        <Icon size={16} color={colors.tabIconDefault} />
-        <Text style={[styles.label, { color: colors.tabIconDefault }]}>{label}</Text>
-      </View>
-      <TextInput 
-        style={[styles.input, { color: colors.text }]}
-        value={value}
-        onChangeText={onChangeText}
-        editable={true}
-      />
-    </View>
-  );
+  const handleSave = () => {
+    setIsSaving(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSaving(false);
+      Alert.alert(
+        "Changes Saved",
+        "Your personal information has been updated successfully.",
+        [{ text: "Great!", onPress: () => router.back() }]
+      );
+    }, 1500);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -46,14 +61,22 @@ export default function PersonalInfoScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <InfoField label="Full Name" value={name} onChangeText={setName} icon={User} />
-          <InfoField label="Email Address" value={email} onChangeText={setEmail} icon={Mail} />
-          <InfoField label="Phone Number" value={phone} onChangeText={setPhone} icon={Phone} />
-          <InfoField label="Location" value={location} onChangeText={setLocation} icon={MapPin} />
+          <InfoField label="Full Name" value={name} onChangeText={setName} icon={User} colors={colors} />
+          <InfoField label="Email Address" value={email} onChangeText={setEmail} icon={Mail} colors={colors} />
+          <InfoField label="Phone Number" value={phone} onChangeText={setPhone} icon={Phone} colors={colors} />
+          <InfoField label="Location" value={location} onChangeText={setLocation} icon={MapPin} colors={colors} />
         </View>
 
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.tint }]}>
-          <Text style={styles.saveBtnText}>Save Changes</Text>
+        <TouchableOpacity 
+          style={[styles.saveBtn, { backgroundColor: colors.tint, opacity: isSaving ? 0.7 : 1 }]}
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveBtnText}>Save Changes</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
