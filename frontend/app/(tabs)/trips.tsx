@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
-import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle } from 'lucide-react-native';
+import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle, CheckCircle2, Circle } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import CustomTimePicker from '../../components/CustomTimePicker';
@@ -18,8 +18,12 @@ const INITIAL_TRIPS = [
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
     itinerary: [
-      { id: '1', time: '09:00 AM', event: 'Morning Flight', icon: 'Plane', desc: 'Flight TK123 to Zermatt' },
-      { id: '2', time: '01:00 PM', event: 'Hotel Check-in', icon: 'MapPin', desc: 'Alpine Resort & Spa' }
+      { id: '1', time: '09:00 AM', event: 'Morning Flight', icon: 'Plane', desc: 'Flight TK123 to Zermatt', completed: false },
+      { id: '2', time: '01:00 PM', event: 'Hotel Check-in', icon: 'MapPin', desc: 'Alpine Resort & Spa', completed: false }
+    ],
+    checklist: [
+      { id: '1', text: 'Pack snow boots', completed: false },
+      { id: '2', text: 'Check passport', completed: true }
     ]
   },
   {
@@ -31,19 +35,48 @@ const INITIAL_TRIPS = [
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
     itinerary: [
-      { id: '1', time: '11:00 AM', event: 'Eiffel Tower', icon: 'Sparkles', desc: 'Guided tour at the summit' }
-    ]
+      { id: '1', time: '11:00 AM', event: 'Eiffel Tower', icon: 'Sparkles', desc: 'Guided tour at the summit', completed: false }
+    ],
+    checklist: []
   }
 ];
 
 import { useTheme } from '../../context/ThemeContext';
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+interface ItineraryItem {
+  id: string;
+  time: string;
+  event: string;
+  icon: string;
+  desc: string;
+  date?: string;
+  completed?: boolean;
+}
+
+interface Trip {
+  id: string;
+  name: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  image: string;
+  status: string;
+  itinerary: ItineraryItem[];
+  checklist: ChecklistItem[];
+}
 
 export default function TripsScreen() {
   const { isDarkMode, colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // State Management
-  const [trips, setTrips] = useState(INITIAL_TRIPS);
+  const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTrip, setEditingTrip] = useState<any>(null);
   const [itineraryModalVisible, setItineraryModalVisible] = useState(false);
@@ -62,25 +95,28 @@ export default function TripsScreen() {
   // Itinerary Form State
   const [itineraryFormVisible, setItineraryFormVisible] = useState(false);
   const [editingItineraryItem, setEditingItineraryItem] = useState<any>(null);
-  const [itineraryFormData, setItineraryFormData] = useState({
+  const [itineraryFormData, setItineraryFormData] = useState<Omit<ItineraryItem, 'id'>>({
     event: '',
     time: '09:00 AM',
     date: '',
     desc: '',
-    icon: 'Plane'
+    icon: 'Plane',
+    completed: false
   });
   const [showActivityDatePicker, setShowActivityDatePicker] = useState(false);
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Trip, 'id'>>({
     name: '',
     location: '',
     startDate: '',
     endDate: '',
     image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
     status: 'Upcoming',
-    itinerary: []
+    itinerary: [],
+    checklist: []
   });
+  const [checklistInput, setChecklistInput] = useState('');
 
   const performLocationSearch = async (query: string) => {
     if (query.length <= 2) {
@@ -164,8 +200,12 @@ export default function TripsScreen() {
     });
   };
 
-  const getStableTime = (timeStr: string) => {
+  const getStableTime = (timeStr?: string) => {
     const d = new Date();
+    if (!timeStr) {
+      d.setHours(9, 0, 0, 0);
+      return d;
+    }
     try {
       const [time, period] = timeStr.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
@@ -279,7 +319,11 @@ export default function TripsScreen() {
   const handleOpenModal = (trip: any = null) => {
     if (trip) {
       setEditingTrip(trip);
-      setFormData({ ...trip, itinerary: trip.itinerary || [] });
+      setFormData({ 
+        ...trip, 
+        itinerary: trip.itinerary || [],
+        checklist: trip.checklist || []
+      });
     } else {
       setEditingTrip(null);
       const now = new Date();
@@ -291,7 +335,8 @@ export default function TripsScreen() {
         endDate: '',
         image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop',
         status: 'Upcoming',
-        itinerary: []
+        itinerary: [],
+        checklist: []
       });
     }
     setLocationResults([]);
@@ -307,7 +352,14 @@ export default function TripsScreen() {
   const handleOpenActivityForm = (activity: any = null) => {
     if (activity) {
       setEditingItineraryItem(activity);
-      setItineraryFormData({ ...activity });
+      setItineraryFormData({
+        event: activity.event || '',
+        time: activity.time || '09:00 AM',
+        date: activity.date || selectedTrip?.startDate || '',
+        desc: activity.desc || '',
+        icon: activity.icon || 'Plane',
+        completed: !!activity.completed
+      });
     } else {
       setEditingItineraryItem(null);
       setItineraryFormData({
@@ -315,7 +367,8 @@ export default function TripsScreen() {
         time: '09:00 AM',
         date: selectedTrip?.startDate || '',
         desc: '',
-        icon: 'Plane'
+        icon: 'Plane',
+        completed: false
       });
     }
     Keyboard.dismiss();
@@ -358,6 +411,30 @@ export default function TripsScreen() {
       i.id === activityId ? { ...i, completed: !i.completed } : i
     );
     const updatedTrip = { ...selectedTrip, itinerary: updatedItinerary };
+    setSelectedTrip(updatedTrip);
+    setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+  };
+
+  const handleAddChecklistItem = () => {
+    if (!checklistInput.trim()) return;
+    const newItem = {
+      id: Date.now().toString(),
+      text: checklistInput.trim(),
+      completed: false
+    };
+    setFormData(f => ({ ...f, checklist: [...(f.checklist || []), newItem] }));
+    setChecklistInput('');
+  };
+
+  const handleRemoveChecklistItem = (id: string) => {
+    setFormData(f => ({ ...f, checklist: f.checklist.filter((i: any) => i.id !== id) }));
+  };
+
+  const handleToggleChecklistItem = (id: string) => {
+    const updatedChecklist = selectedTrip.checklist.map((i: any) =>
+      i.id === id ? { ...i, completed: !i.completed } : i
+    );
+    const updatedTrip = { ...selectedTrip, checklist: updatedChecklist };
     setSelectedTrip(updatedTrip);
     setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
   };
@@ -604,7 +681,39 @@ export default function TripsScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+              </View>
 
+              <View style={styles.formItem}>
+                <Text style={[styles.label, { color: colors.tabIconDefault }]}>Trip Checklist</Text>
+                <View style={[styles.inputWrapper, { marginBottom: 12 }]}>
+                  <TextInput
+                    style={[styles.input, { color: colors.text, borderColor: colors.border, paddingRight: 50 }]}
+                    placeholder="Add item (e.g. Pack chargers)"
+                    placeholderTextColor={colors.tabIconDefault}
+                    value={checklistInput}
+                    onChangeText={setChecklistInput}
+                    onSubmitEditing={handleAddChecklistItem}
+                  />
+                  <TouchableOpacity 
+                    style={[styles.addChecklistBtn, { backgroundColor: colors.tint }]}
+                    onPress={handleAddChecklistItem}
+                  >
+                    <Plus size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                
+                {formData.checklist && formData.checklist.length > 0 && (
+                  <View style={styles.checklistPreview}>
+                    {formData.checklist.map((item: any) => (
+                      <View key={item.id} style={[styles.checklistEntry, { borderColor: colors.border }]}>
+                        <Text style={[styles.checklistEntryText, { color: colors.text }]}>{item.text}</Text>
+                        <TouchableOpacity onPress={() => handleRemoveChecklistItem(item.id)}>
+                          <Trash2 size={16} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <TouchableOpacity
@@ -766,6 +875,34 @@ export default function TripsScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                   >
+                    {selectedTrip?.checklist && selectedTrip.checklist.length > 0 && (
+                      <View style={styles.itineraryChecklist}>
+                        <Text style={[styles.sectionLabel, { color: colors.tabIconDefault }]}>TRIP CHECKLIST</Text>
+                        {selectedTrip.checklist.map((item: any) => (
+                          <TouchableOpacity 
+                            key={item.id} 
+                            style={styles.checklistItem}
+                            onPress={() => handleToggleChecklistItem(item.id)}
+                          >
+                            {item.completed ? (
+                              <CheckCircle2 size={20} color={colors.tint} />
+                            ) : (
+                              <Circle size={20} color={colors.border} />
+                            )}
+                            <Text style={[
+                              styles.checklistItemText, 
+                              { color: colors.text },
+                              item.completed && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
+                            ]}>
+                              {item.text}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+
+                    <Text style={[styles.sectionLabel, { color: colors.tabIconDefault, marginTop: 20, marginBottom: 12 }]}>ITINERARY</Text>
+
                     {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
                       const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
                       const isCompleted = !!item.completed;
@@ -985,4 +1122,14 @@ const styles = StyleSheet.create({
   imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
   imageTextOverlay: { position: 'absolute', bottom: 16, left: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   imageOverlayText: { color: '#fff', fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+
+  addChecklistBtn: { position: 'absolute', right: 6, width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  checklistPreview: { gap: 8 },
+  checklistEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderRadius: 12 },
+  checklistEntryText: { fontSize: 14, fontWeight: '500' },
+  
+  itineraryChecklist: { marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
+  checklistItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  checklistItemText: { fontSize: 15, fontWeight: '600' },
 });
