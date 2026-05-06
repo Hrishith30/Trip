@@ -5,6 +5,7 @@ import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import CustomDatePicker from '../../components/CustomDatePicker';
+import CustomTimePicker from '../../components/CustomTimePicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const INITIAL_TRIPS = [
@@ -689,32 +690,6 @@ export default function TripsScreen() {
                       </View>
                     </View>
 
-                    {/* Time Picker Modal */}
-                    <Modal visible={showTimePicker} transparent animationType="fade">
-                      <TouchableOpacity
-                        style={styles.datePickerOverlay}
-                        activeOpacity={1}
-                        onPress={() => setShowTimePicker(false)}
-                      >
-                        <View style={[styles.datePickerContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                          <View style={styles.pickerHeader}>
-                            <Text style={[styles.pickerTitle, { color: colors.text }]}>Select Time</Text>
-                            <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                              <Text style={{ color: colors.tint, fontWeight: '700' }}>Done</Text>
-                            </TouchableOpacity>
-                          </View>
-                          <DateTimePicker
-                            value={getStableTime(itineraryFormData.time)}
-                            mode="time"
-                            is24Hour={false}
-                            display="spinner"
-                            onChange={onTimeChange}
-                            textColor={colors.text}
-                            style={{ width: '100%' }}
-                          />
-                        </View>
-                      </TouchableOpacity>
-                    </Modal>
 
                     <View style={[styles.formItem, { marginTop: 16 }]}>
                       <Text style={[styles.label, { color: colors.tabIconDefault }]}>Description</Text>
@@ -859,6 +834,18 @@ export default function TripsScreen() {
           bgColor={colors.card}
           borderColor={colors.border}
           mutedColor={colors.tabIconDefault}
+        />
+
+        {/* ── Activity Time Picker ── */}
+        <CustomTimePicker
+          visible={showTimePicker}
+          value={getStableTime(itineraryFormData.time)}
+          onClose={() => setShowTimePicker(false)}
+          onChange={onTimeChange}
+          accentColor={colors.tint}
+          textColor={colors.text}
+          bgColor={colors.card}
+          borderColor={colors.border}
         />
       </Modal>
 
