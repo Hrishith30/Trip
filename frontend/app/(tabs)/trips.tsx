@@ -321,8 +321,8 @@ export default function TripsScreen() {
   const handleOpenModal = (trip: any = null) => {
     if (trip) {
       setEditingTrip(trip);
-      setFormData({ 
-        ...trip, 
+      setFormData({
+        ...trip,
         itinerary: trip.itinerary || [],
         checklist: trip.checklist || []
       });
@@ -411,7 +411,7 @@ export default function TripsScreen() {
   };
 
   const handleToggleActivityComplete = (activityId: string) => {
-    const updatedItinerary = selectedTrip.itinerary.map((i: any) => 
+    const updatedItinerary = selectedTrip.itinerary.map((i: any) =>
       i.id === activityId ? { ...i, completed: !i.completed } : i
     );
     const updatedTrip = { ...selectedTrip, itinerary: updatedItinerary };
@@ -714,14 +714,14 @@ export default function TripsScreen() {
                     onChangeText={setChecklistInput}
                     onSubmitEditing={handleAddChecklistItem}
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.addChecklistBtn, { backgroundColor: colors.tint }]}
                     onPress={handleAddChecklistItem}
                   >
                     <Plus size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
-                
+
                 {formData.checklist && formData.checklist.length > 0 && (
                   <View style={styles.checklistPreview}>
                     {formData.checklist.map((item: any) => (
@@ -745,7 +745,7 @@ export default function TripsScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-        
+
         {/* ── Trip Date Picker ── */}
         <CustomDatePicker
           visible={showDatePicker}
@@ -784,8 +784,8 @@ export default function TripsScreen() {
                     </Text>
                   </View>
 
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false} 
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: 40 }}
                     keyboardShouldPersistTaps="handled"
                   >
@@ -899,7 +899,7 @@ export default function TripsScreen() {
                     </View>
                   </View>
 
-                  <ScrollView 
+                  <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                   >
@@ -924,8 +924,8 @@ export default function TripsScreen() {
                       <View style={styles.itineraryChecklist}>
                         <Text style={[styles.sectionLabel, { color: colors.tabIconDefault }]}>TRIP CHECKLIST</Text>
                         {selectedTrip.checklist.map((item: any) => (
-                          <TouchableOpacity 
-                            key={item.id} 
+                          <TouchableOpacity
+                            key={item.id}
                             style={styles.checklistItem}
                             onPress={() => handleToggleChecklistItem(item.id)}
                           >
@@ -935,7 +935,7 @@ export default function TripsScreen() {
                               <Circle size={20} color={colors.border} />
                             )}
                             <Text style={[
-                              styles.checklistItemText, 
+                              styles.checklistItemText,
                               { color: colors.text },
                               item.completed && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
                             ]}>
@@ -951,18 +951,18 @@ export default function TripsScreen() {
                     {(selectedTrip?.itinerary || []).map((item: any, idx: number) => {
                       const IconComp = item.icon === 'Plane' ? Plane : item.icon === 'MapPin' ? MapPin : item.icon === 'Sparkles' ? Sparkles : Compass;
                       const isCompleted = !!item.completed;
-                      
+
                       return (
-                        <TouchableOpacity 
-                          key={item.id} 
+                        <TouchableOpacity
+                          key={item.id}
                           style={styles.itineraryItem}
                           activeOpacity={0.8}
                           onPress={() => handleToggleActivityComplete(item.id)}
                         >
                           <View style={styles.timeline}>
                             <View style={[
-                              styles.timelineIconContainer, 
-                              { 
+                              styles.timelineIconContainer,
+                              {
                                 backgroundColor: isCompleted ? colors.background : colors.tint,
                                 borderColor: isCompleted ? colors.border : colors.tint,
                               }
@@ -972,9 +972,9 @@ export default function TripsScreen() {
                             {idx !== (selectedTrip.itinerary.length - 1) && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
                           </View>
                           <View style={[
-                            styles.itineraryCard, 
-                            { 
-                              backgroundColor: isCompleted ? 'rgba(0,0,0,0.02)' : colors.background, 
+                            styles.itineraryCard,
+                            {
+                              backgroundColor: isCompleted ? 'rgba(0,0,0,0.02)' : colors.background,
                               borderColor: colors.border,
                               opacity: isCompleted ? 0.6 : 1
                             }
@@ -983,7 +983,7 @@ export default function TripsScreen() {
                               <View style={styles.itineraryHeader}>
                                 <View>
                                   <Text style={[
-                                    styles.itineraryTime, 
+                                    styles.itineraryTime,
                                     { color: isCompleted ? colors.tabIconDefault : colors.tint },
                                     isCompleted && { textDecorationLine: 'line-through' }
                                   ]}>{item.time}</Text>
@@ -1004,7 +1004,7 @@ export default function TripsScreen() {
                               </View>
                               <View style={styles.eventRow}>
                                 <Text style={[
-                                  styles.itineraryEvent, 
+                                  styles.itineraryEvent,
                                   { color: colors.text },
                                   isCompleted && { textDecorationLine: 'line-through', color: colors.tabIconDefault }
                                 ]}>{item.event}</Text>
@@ -1175,7 +1175,7 @@ const styles = StyleSheet.create({
   checklistPreview: { gap: 8 },
   checklistEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderWidth: 1, borderRadius: 12 },
   checklistEntryText: { fontSize: 14, fontWeight: '500' },
-  
+
   itineraryChecklist: { marginBottom: 10 },
   sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
   checklistItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
