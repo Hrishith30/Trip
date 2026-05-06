@@ -9,6 +9,14 @@ export default function Dashboard() {
   const colors = Colors[colorScheme];
   
   const scrollY = useRef(new Animated.Value(0)).current;
+  
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
+  };
 
   const StatCard = ({ icon: Icon, value, label, color }: any) => (
     <View style={[styles.statCard, { backgroundColor: color + '15', borderColor: color + '30' }]}>
@@ -53,7 +61,7 @@ export default function Dashboard() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>Good Morning,</Text>
+              <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>{getGreeting()},</Text>
               <Text style={[styles.name, { color: colors.text }]}>Hrishith!</Text>
             </View>
             <TouchableOpacity style={[styles.profileButton, { borderColor: colors.border }]}>

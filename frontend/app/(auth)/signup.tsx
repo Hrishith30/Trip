@@ -9,7 +9,7 @@ export default function SignupScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +18,7 @@ export default function SignupScreen() {
   const pickImage = async () => {
     // Request permission first
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+
     if (status !== 'granted') {
       Alert.alert('Permission Denied', 'We need access to your gallery to upload a profile photo.');
       return;
@@ -47,11 +47,11 @@ export default function SignupScreen() {
       <View style={[styles.bgCircle, { top: -50, left: -100, backgroundColor: colors.tint + '15' }]} />
       <View style={[styles.bgCircle, { bottom: -100, right: -150, backgroundColor: colors.accent + '10' }]} />
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           centerContent={true}
@@ -65,10 +65,10 @@ export default function SignupScreen() {
             </View>
 
             <View style={styles.profileSection}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.profileCircle, 
-                  { 
+                  styles.profileCircle,
+                  {
                     backgroundColor: colors.border + '50',
                     borderWidth: image ? 0 : 1.5,
                     borderStyle: image ? 'solid' : 'dashed'
@@ -77,9 +77,9 @@ export default function SignupScreen() {
                 onPress={pickImage}
               >
                 {image ? (
-                  <Image 
-                    source={{ uri: image }} 
-                    style={styles.profileImage} 
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.profileImage}
                     resizeMode="cover"
                   />
                 ) : (
@@ -128,7 +128,7 @@ export default function SignupScreen() {
                 />
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.mainButton, { backgroundColor: colors.tint }]}
                 onPress={handleSignup}
               >
@@ -139,15 +139,15 @@ export default function SignupScreen() {
 
             <Text style={[styles.legalText, { color: colors.tabIconDefault }]}>
               By joining, you agree to our{' '}
-              <Text 
-                style={{ fontWeight: '800', color: colors.tint }} 
+              <Text
+                style={{ fontWeight: '800', color: colors.tint }}
                 onPress={() => router.push('/terms')}
               >
                 Terms
               </Text>{' '}
               and{' '}
-              <Text 
-                style={{ fontWeight: '800', color: colors.tint }} 
+              <Text
+                style={{ fontWeight: '800', color: colors.tint }}
                 onPress={() => router.push('/privacy')}
               >
                 Privacy Policy

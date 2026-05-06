@@ -8,7 +8,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -22,11 +22,11 @@ export default function LoginScreen() {
       <View style={[styles.bgCircle, { top: -50, right: -100, backgroundColor: colors.tint + '15' }]} />
       <View style={[styles.bgCircle, { bottom: -100, left: -150, backgroundColor: colors.secondary + '10' }]} />
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           centerContent={true}
@@ -64,14 +64,14 @@ export default function LoginScreen() {
                 />
               </View>
 
-              <TouchableOpacity 
-                style={styles.forgotBtn} 
+              <TouchableOpacity
+                style={styles.forgotBtn}
                 onPress={() => router.push('/forgot-password')}
               >
                 <Text style={[styles.forgotText, { color: colors.tint }]}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.mainButton, { backgroundColor: colors.tint }]}
                 onPress={handleLogin}
               >
