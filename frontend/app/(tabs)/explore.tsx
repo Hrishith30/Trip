@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, useColorScheme, TouchableOpacity, TextInput, Alert, Dimensions, Linking, Platform, FlatList, ActivityIndicator } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors } from '../../constants/Colors';
-import { Search, MapPin, LocateFixed, Clock, X, Share2, CornerUpRight, Star, TrendingUp, Compass, Map as MapIcon } from 'lucide-react-native';
+import { Search, MapPin, LocateFixed, Clock, X, Share2, CornerUpRight, Star, TrendingUp, Compass, Map as MapIcon, Plus } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +20,12 @@ export default function ExploreScreen() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [region, setRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   useEffect(() => {
     (async () => {
@@ -28,12 +34,14 @@ export default function ExploreScreen() {
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation);
       
-      mapRef.current?.animateToRegion({
+      const initialRegion = {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
-      }, 1500);
+      };
+      setRegion(initialRegion);
+      mapRef.current?.animateToRegion(initialRegion, 1500);
     })();
   }, []);
 
@@ -138,24 +146,51 @@ export default function ExploreScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
+        provider={PROVIDER_GOOGLE}
         showsUserLocation={true}
+        onRegionChangeComplete={(r) => setRegion(r)}
         onPress={(e) => {
-          setDestination({ id: 'custom', title: 'Pinned Location', coordinate: e.nativeEvent.coordinate, type: 'Selected' });
+          // Extra sensitivity check for Android
+          if (e.nativeEvent && e.nativeEvent.coordinate) {
+            setDestination({ 
+              id: 'custom-' + Date.now(), 
+              title: 'Pinned Location', 
+              coordinate: e.nativeEvent.coordinate, 
+              type: 'Selected' 
+            });
+            setShowSuggestions(false);
+          }
+        }}
+        onLongPress={(e) => {
+          if (e.nativeEvent && e.nativeEvent.coordinate) {
+            setDestination({ 
+              id: 'custom-' + Date.now(), 
+              title: 'Pinned Location', 
+              coordinate: e.nativeEvent.coordinate, 
+              type: 'Selected' 
+            });
+            setShowSuggestions(false);
+          }
+        }}
+        onPoiClick={(e) => {
+          // Instant pinning for buildings/landmarks
+          setDestination({
+            id: 'poi-' + e.nativeEvent.placeId,
+            title: e.nativeEvent.name,
+            coordinate: e.nativeEvent.coordinate,
+            type: 'Point of Interest'
+          });
           setShowSuggestions(false);
         }}
-        initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
+        initialRegion={region}
         customMapStyle={colorScheme === 'dark' ? darkMapStyle : []}
       >
         {destination && (
-          <Marker coordinate={destination.coordinate}>
-            <View style={[styles.destMarker, { backgroundColor: '#ef4444' }]}>
-              <MapPin size={20} color="#fff" />
-            </View>
+          <Marker 
+            coordinate={destination.coordinate}
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <MapPin size={32} color="#ef4444" fill="#ef444420" strokeWidth={2.5} />
           </Marker>
         )}
       </MapView>
@@ -269,7 +304,6 @@ const styles = StyleSheet.create({
   suggestText: { flex: 1 },
   suggestTitle: { fontSize: 16, fontWeight: '700' },
   suggestSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-  destMarker: { padding: 8, borderRadius: 20, borderWidth: 2, borderColor: '#fff' },
   routeCard: { position: 'absolute', bottom: 20, left: 20, right: 20, padding: 20, borderRadius: 28, borderWidth: 1, elevation: 20 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
   headerMain: { flex: 1 },
@@ -285,4 +319,6 @@ const styles = StyleSheet.create({
   fabContainer: { position: 'absolute', right: 20, gap: 12 },
   fab: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, justifyContent: 'center', alignItems: 'center', elevation: 8 },
   emptyContainer: { padding: 20, alignItems: 'center' },
+  crosshairContainer: { position: 'absolute', top: '50%', left: '50%', marginTop: -10, marginLeft: -10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', zIndex: 50 },
+  crosshairLine: { backgroundColor: 'rgba(0,0,0,0.3)', position: 'absolute' },
 });
