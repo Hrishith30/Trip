@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { TrendingUp, Users, Bell, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles } from 'lucide-react-native';
+import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles, Compass } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,9 +12,9 @@ export default function Dashboard() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const scrollY = useRef(new Animated.Value(0)).current;
-  
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'Rise & Wander';
@@ -24,8 +24,8 @@ export default function Dashboard() {
   };
 
   const QuickAction = ({ icon: Icon, label, color, onPress }: any) => (
-    <TouchableOpacity 
-      style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} 
+    <TouchableOpacity
+      style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
     >
       <View style={[styles.actionIcon, { backgroundColor: color + '15' }]}>
@@ -39,7 +39,7 @@ export default function Dashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
 
-      <Animated.ScrollView 
+      <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -56,9 +56,9 @@ export default function Dashboard() {
               <Text style={[styles.name, { color: colors.text }]}>Hrishith!</Text>
             </View>
             <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
-              <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }} 
-                style={styles.avatar} 
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }}
+                style={styles.avatar}
               />
               <View style={[styles.statusIndicator, { backgroundColor: '#10b981' }]} />
             </TouchableOpacity>
@@ -66,9 +66,9 @@ export default function Dashboard() {
         </View>
 
         {/* Dynamic Stats Banner */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.statsScroll}
         >
           <View style={[styles.statBanner, { backgroundColor: colors.tint }]}>
@@ -88,14 +88,14 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.heroCard, { shadowColor: colors.tint }]}
           onPress={() => router.push('/trips')}
           activeOpacity={0.9}
         >
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop' }} 
-            style={styles.heroImage} 
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop' }}
+            style={styles.heroImage}
           />
           <View style={styles.heroOverlay}>
             <View style={styles.heroBadge}>
@@ -120,14 +120,14 @@ export default function Dashboard() {
           <QuickAction icon={Receipt} label="Split Bill" color="#10b981" onPress={() => router.push('/split')} />
           <QuickAction icon={Music} label="Roadmix" color="#8b5cf6" onPress={() => router.push('/music')} />
           <QuickAction icon={Calendar} label="Plans" color="#f59e0b" onPress={() => router.push('/trips')} />
-          <QuickAction icon={Bell} label="Alerts" color="#ef4444" onPress={() => {}} />
+          <QuickAction icon={Compass} label="Explore" color="#0ea5e9" onPress={() => router.push('/explore')} />
         </View>
 
         {/* Recent Activity Log */}
         <View style={styles.sectionTitleRow}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Travel Log</Text>
         </View>
-        
+
         <View style={styles.activityContainer}>
           {[
             { title: 'Paris Itinerary', sub: 'Eiffel Tower visit added', time: '2h ago', icon: MapPin, color: '#3b82f6' },
@@ -148,7 +148,7 @@ export default function Dashboard() {
       </Animated.ScrollView>
 
       {/* Modern Music FAB */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.musicFab, { backgroundColor: colors.tint, shadowColor: colors.tint }]}
         activeOpacity={0.8}
         onPress={() => router.push('/music')}
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   profileBtn: { width: 54, height: 54, borderRadius: 20, padding: 2 },
   avatar: { width: '100%', height: '100%', borderRadius: 18 },
   statusIndicator: { position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
-  
+
   statsScroll: { paddingLeft: 24, paddingRight: 24, marginBottom: 32 },
   statBanner: { flexDirection: 'row', padding: 16, borderRadius: 28, elevation: 12, shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
