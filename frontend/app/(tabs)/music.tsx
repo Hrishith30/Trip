@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Modal, Platform, StatusBar } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Modal, Platform, StatusBar, PanResponder } from 'react-native';
 import { Play, Pause, SkipForward, SkipBack, Heart, Search, X, ChevronDown, MoreHorizontal, ArrowRight, Sparkles, Music, Shuffle, Repeat, Repeat1 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,6 +46,10 @@ export default function MusicScreen() {
   const [activeLanguage, setActiveLanguage] = useState('Telugu');
   const [isShuffling, setIsShuffling] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('none');
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const duration = 230; // 3:50 in seconds
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -57,6 +61,82 @@ export default function MusicScreen() {
   const toggleLike = (id: string) => {
     setLikedSongs(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
+
+  const skipTrack = useCallback((direction: 'next' | 'prev') => {
+    const currentIndex = MOCK_TRACKS.findIndex(t => t.id === currentTrack.id);
+    let nextIndex;
+
+    if (isShuffling) {
+      nextIndex = Math.floor(Math.random() * MOCK_TRACKS.length);
+    } else {
+      if (direction === 'next') {
+        nextIndex = (currentIndex + 1) % MOCK_TRACKS.length;
+      } else {
+        nextIndex = (currentIndex - 1 + MOCK_TRACKS.length) % MOCK_TRACKS.length;
+      }
+    }
+
+    setCurrentTrack(MOCK_TRACKS[nextIndex]);
+    setCurrentTime(0);
+    setIsPlaying(true);
+  }, [currentTrack, isShuffling]);
+
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying && !isScrubbing) {
+      // Use timestamp for absolute precision
+      const startTime = Date.now() - (currentTime * 1000);
+      
+      interval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        
+        if (elapsed >= duration) {
+          if (repeatMode === 'one') {
+            setCurrentTime(0);
+          } else {
+            skipTrack('next');
+            setCurrentTime(0);
+          }
+        } else {
+          setCurrentTime(elapsed);
+        }
+      }, 16);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, isScrubbing, repeatMode, skipTrack]);
+
+  const formatTime = (seconds: number) => {
+    const totalSecs = Math.floor(seconds);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: (currentTime / duration) * 100,
+      duration: isScrubbing ? 0 : 16,
+      useNativeDriver: true,
+    }).start();
+  }, [currentTime, isScrubbing]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        setIsScrubbing(true);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const barWidth = width - 64;
+        const newPos = (gestureState.moveX - 32) / barWidth;
+        setCurrentTime(Math.max(0, Math.min(duration, newPos * duration)));
+      },
+      onPanResponderRelease: () => {
+        setIsScrubbing(false);
+      },
+    })
+  ).current;
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? colors.background : '#ffffff' }]}>
@@ -326,12 +406,28 @@ export default function MusicScreen() {
                 </View>
 
                 <View style={styles.fullProgress}>
-                  <View style={[styles.fullProgressBar, { backgroundColor: colors.border }]}>
-                    <View style={[styles.fullProgressFill, { width: '45%', backgroundColor: colors.tint }]} />
+                  <View 
+                    {...panResponder.panHandlers}
+                    style={[styles.fullProgressBar, { backgroundColor: colors.border }]}
+                  >
+                    <Animated.View style={[styles.fullProgressFill, { 
+                      transform: [
+                        { translateX: -(width - 64) / 2 },
+                        { scaleX: progressAnim.interpolate({ inputRange: [0, 100], outputRange: [0.0001, 1] }) },
+                        { translateX: (width - 64) / 2 }
+                      ], 
+                      backgroundColor: colors.tint,
+                      width: '100%'
+                    }]} />
+                    <Animated.View style={[styles.progressKnob, { 
+                      transform: [{ translateX: progressAnim.interpolate({ inputRange: [0, 100], outputRange: [0, width - 64] }) }],
+                      backgroundColor: colors.tint,
+                      left: 0
+                    }]} />
                   </View>
                   <View style={styles.fullTimeRow}>
-                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>1:42</Text>
-                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>3:50</Text>
+                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>{formatTime(currentTime)}</Text>
+                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>{formatTime(duration)}</Text>
                   </View>
                 </View>
 
@@ -340,7 +436,7 @@ export default function MusicScreen() {
                     <Shuffle size={24} color={isShuffling ? colors.tint : colors.tabIconDefault} />
                   </TouchableOpacity>
                   
-                  <TouchableOpacity><SkipBack size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => skipTrack('prev')}><SkipBack size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
                   
                   <TouchableOpacity 
                     style={[styles.fullPlayBtn, { backgroundColor: colors.text }]} 
@@ -353,7 +449,7 @@ export default function MusicScreen() {
                     )}
                   </TouchableOpacity>
                   
-                  <TouchableOpacity><SkipForward size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => skipTrack('next')}><SkipForward size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
 
                   <TouchableOpacity onPress={() => setRepeatMode(prev => prev === 'none' ? 'all' : prev === 'all' ? 'one' : 'none')}>
                     {repeatMode === 'one' ? (
@@ -433,8 +529,9 @@ const styles = StyleSheet.create({
   fullTitle: { fontSize: 32, fontWeight: '900', letterSpacing: -1 },
   fullArtist: { fontSize: 20, fontWeight: '600', marginTop: 5 },
   fullProgress: { width: '100%', marginBottom: 40 },
-  fullProgressBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fullProgressBar: { height: 6, borderRadius: 3 },
   fullProgressFill: { height: '100%' },
+  progressKnob: { position: 'absolute', width: 14, height: 14, borderRadius: 7, top: -4, marginLeft: -7, elevation: 4, shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
   fullTimeRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   fullTime: { fontSize: 12, fontWeight: '800' },
   fullControls: { flexDirection: 'row', alignItems: 'center', gap: 40 },
