@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Modal, Platform, StatusBar } from 'react-native';
-import { Play, Pause, SkipForward, SkipBack, Heart, Search, X, ChevronDown, MoreHorizontal, ArrowRight, Sparkles, Music, Shuffle, Repeat } from 'lucide-react-native';
+import { Play, Pause, SkipForward, SkipBack, Heart, Search, X, ChevronDown, MoreHorizontal, ArrowRight, Sparkles, Music, Shuffle, Repeat, Repeat1 } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -335,9 +335,14 @@ export default function MusicScreen() {
                 </View>
 
                 <View style={styles.fullControls}>
+                  <TouchableOpacity onPress={() => setIsShuffling(!isShuffling)}>
+                    <Shuffle size={24} color={isShuffling ? colors.tint : colors.tabIconDefault} />
+                  </TouchableOpacity>
+                  
                   <TouchableOpacity><SkipBack size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.fullPlayBtn, { backgroundColor: colors.text }]}
+                  
+                  <TouchableOpacity 
+                    style={[styles.fullPlayBtn, { backgroundColor: colors.text }]} 
                     onPress={() => setIsPlaying(!isPlaying)}
                   >
                     {isPlaying ? (
@@ -346,7 +351,16 @@ export default function MusicScreen() {
                       <Play size={40} color={colors.background} fill={colors.background} style={{ marginLeft: 6 }} />
                     )}
                   </TouchableOpacity>
+                  
                   <TouchableOpacity><SkipForward size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => setRepeatMode(prev => prev === 'none' ? 'all' : prev === 'all' ? 'one' : 'none')}>
+                    {repeatMode === 'one' ? (
+                      <Repeat1 size={24} color={colors.tint} />
+                    ) : (
+                      <Repeat size={24} color={repeatMode === 'all' ? colors.tint : colors.tabIconDefault} />
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
