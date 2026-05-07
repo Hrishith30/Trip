@@ -2,7 +2,7 @@ from ytmusicapi import YTMusic
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import yt_dlp
+from pytubefix import YouTube
 
 app = FastAPI(title="Wayfarer Music API")
 
@@ -20,19 +20,20 @@ yt = YTMusic()
 @app.get("/stream/{video_id}")
 async def get_stream_url(video_id: str):
     """
-    Get a direct streamable audio URL for a YouTube Video ID.
+    Get a direct streamable audio URL for a YouTube Video ID using pytubefix.
     """
-    ydl_opts = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best',
-        'quiet': True,
-        'no_warnings': True,
-    }
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            return {"url": info['url']}
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        yt_obj = YouTube(url)
+        # Get the first audio-only stream (usually m4a)
+        audio_stream = yt_obj.streams.get_audio_only()
+        
+        if not audio_stream:
+            raise HTTPException(status_code=404, detail="No audio stream found")
+            
+        return {"url": audio_stream.url}
     except Exception as e:
-        print(f"Error extracting stream: {e}")
+        print(f"Error extracting stream with pytubefix: {e}")
         raise HTTPException(status_code=500, detail="Could not extract stream URL")
 
 @app.get("/search")

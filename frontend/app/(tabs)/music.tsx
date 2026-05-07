@@ -24,8 +24,9 @@ const LANGUAGES = ['All', 'Telugu', 'Hindi', 'English', 'Punjabi', 'Tamil', 'Kan
 export default function MusicScreen() {
   const { colors } = useTheme();
 
-  // Connect to deployed Vercel backend
+  // Connect to your live Vercel backend
   const API_URL = 'https://trip-seven-alpha.vercel.app';
+  // const API_URL = 'http://192.168.1.218:8000';
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
