@@ -16,6 +16,7 @@ export default function MusicScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [tracks, setTracks] = useState<any[]>([]);
+  const [feedTracks, setFeedTracks] = useState<any[]>([]);
   const [currentTrack, setCurrentTrack] = useState<any>(null);
   const [searchFilter, setSearchFilter] = useState<'Songs' | 'Albums'>('Songs');
   const [filterDropdownVisible, setFilterDropdownVisible] = useState(false);
@@ -66,7 +67,8 @@ export default function MusicScreen() {
       }
       const data = await response.json();
       if (data && data.length > 0) {
-        setTracks(data);
+        setFeedTracks(data);
+        setTracks(prev => prev.length === 0 ? data : prev);
         if (!status.playing && filterType === 'Songs') {
           setCurrentTrack(data[0]);
         }
@@ -121,7 +123,7 @@ export default function MusicScreen() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, searchFilter]);
 
-  const handleItemClick = async (item: any) => {
+  const handleItemClick = async (item: any, contextQueue: any[] = feedTracks) => {
     if (item.type === 'album') {
       setLoading(true);
       try {
@@ -141,6 +143,7 @@ export default function MusicScreen() {
       }
     } else {
       // It's a song
+      setTracks(contextQueue);
       setCurrentTrack(item);
       loadAndPlayTrack(item);
       setSearchVisible(false);
@@ -150,7 +153,7 @@ export default function MusicScreen() {
     }
   };
 
-  const filteredTracks = tracks.filter(track =>
+  const filteredTracks = feedTracks.filter(track =>
     track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     track.artist.toLowerCase().includes(searchQuery.toLowerCase())
   );
