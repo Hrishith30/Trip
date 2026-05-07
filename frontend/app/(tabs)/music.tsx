@@ -60,11 +60,12 @@ export default function MusicScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? colors.background : '#ffffff' }]}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? colors.background : '#ffffff' }} edges={['top']}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
         <ScrollView
           showsVerticalScrollIndicator={false}
+          style={{ backgroundColor: isDarkMode ? colors.background : '#ffffff' }}
           contentContainerStyle={styles.scrollContent}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         >
@@ -176,7 +177,7 @@ export default function MusicScreen() {
         </ScrollView>
 
         <Modal visible={searchVisible} animationType="fade" transparent={true}>
-          <View style={[styles.searchOverlay, { backgroundColor: colors.background + 'F0', paddingTop: insets.top }]}>
+          <View style={[styles.searchOverlay, { backgroundColor: isDarkMode ? colors.background + 'F0' : '#ffffffF0', paddingTop: insets.top }]}>
             <View style={styles.searchHeader}>
               <View style={[styles.searchBar, { backgroundColor: colors.border + '50' }]}>
                 <Search size={20} color={colors.tabIconDefault} />
@@ -230,7 +231,7 @@ export default function MusicScreen() {
 
         {/* Liked Songs Library Modal */}
         <Modal visible={likedModalVisible} animationType="slide" transparent={true}>
-          <View style={[styles.searchOverlay, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+          <View style={[styles.searchOverlay, { backgroundColor: isDarkMode ? colors.background : '#ffffff', paddingTop: insets.top }]}>
             <View style={styles.searchHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>LIBRARY</Text>
@@ -276,7 +277,7 @@ export default function MusicScreen() {
         {/* Floating Mini Player - Matching Profile Hub style */}
         <View style={styles.miniPlayerWrapper}>
           <TouchableOpacity
-            style={[styles.miniPlayer, { backgroundColor: colors.background, borderColor: colors.border }]}
+            style={[styles.miniPlayer, { backgroundColor: isDarkMode ? colors.background : '#ffffff', borderColor: colors.border }]}
             onPress={() => setPlayerModalVisible(true)}
           >
             <Image source={{ uri: currentTrack.cover }} style={styles.miniAvatar} />
@@ -295,7 +296,7 @@ export default function MusicScreen() {
 
         {/* Full Player Modal */}
         <Modal visible={playerModalVisible} animationType="slide">
-        <View style={[styles.fullPlayer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.fullPlayer, { backgroundColor: isDarkMode ? colors.background : '#ffffff', paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={{ flex: 1 }}>
               <View style={styles.fullHeader}>
                 <TouchableOpacity onPress={() => setPlayerModalVisible(false)} style={styles.closeBtn}>
@@ -346,9 +347,9 @@ export default function MusicScreen() {
                     onPress={() => setIsPlaying(!isPlaying)}
                   >
                     {isPlaying ? (
-                      <Pause size={40} color={colors.background} fill={colors.background} />
+                      <Pause size={40} color={isDarkMode ? colors.background : '#ffffff'} fill={isDarkMode ? colors.background : '#ffffff'} />
                     ) : (
-                      <Play size={40} color={colors.background} fill={colors.background} style={{ marginLeft: 6 }} />
+                      <Play size={40} color={isDarkMode ? colors.background : '#ffffff'} fill={isDarkMode ? colors.background : '#ffffff'} style={{ marginLeft: 6 }} />
                     )}
                   </TouchableOpacity>
                   
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
 
   languageContainer: { marginBottom: 32 },
   languageInner: { paddingHorizontal: 24, gap: 10 },
-  languageChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  languageChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   languageText: { fontSize: 14, fontWeight: '800' },
 
   sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
