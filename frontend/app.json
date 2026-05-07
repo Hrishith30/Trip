@@ -39,7 +39,8 @@
       "expo-router",
       "expo-font",
       "expo-av",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-audio"
     ]
   }
 }
