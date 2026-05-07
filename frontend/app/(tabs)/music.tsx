@@ -9,12 +9,12 @@ import { Audio } from 'expo-av';
 const { width } = Dimensions.get('window');
 
 // Default placeholder if no tracks are loaded yet
-const PLACEHOLDER_TRACK = { 
-  id: 'loading', 
-  title: 'Loading music...', 
-  artist: 'Please wait', 
-  cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop', 
-  duration: 0 
+const PLACEHOLDER_TRACK = {
+  id: 'loading',
+  title: 'Loading music...',
+  artist: 'Please wait',
+  cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop',
+  duration: 0
 };
 
 const PLAYLISTS: any[] = [];
@@ -23,16 +23,16 @@ const LANGUAGES = ['All', 'Telugu', 'Hindi', 'English', 'Punjabi', 'Tamil', 'Kan
 
 export default function MusicScreen() {
   const { colors } = useTheme();
-  
-  // Your computer's IP from the logs
-  const API_URL = Platform.OS === 'web' ? 'http://localhost:8000' : 'http://192.168.1.218:8000';
-  
+
+  // Connect to deployed Vercel backend
+  const API_URL = 'https://trip-seven-alpha.vercel.app';
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [loading, setLoading] = useState(false);
-  
+
   // Player State
   const [queue, setQueue] = useState<any[]>([]);
   const [feedTracks, setFeedTracks] = useState<any[]>([]);
@@ -48,9 +48,9 @@ export default function MusicScreen() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekTime, setSeekTime] = useState(0);
   const [progressBarWidth, setProgressBarWidth] = useState(0);
-  
+
   const currentTrack = queue.length > 0 && currentTrackIndex < queue.length
-    ? queue[currentTrackIndex] 
+    ? queue[currentTrackIndex]
     : (loading ? PLACEHOLDER_TRACK : { ...PLACEHOLDER_TRACK, title: 'No tracks found', artist: 'Try another search' });
   const isCurrentTrackLiked = likedTracks.some(t => t.id === currentTrack.id);
 
@@ -59,14 +59,14 @@ export default function MusicScreen() {
     const lang = language || selectedLanguage;
     try {
       // If no query, fetch latest for the language
-      const q = query 
-        ? (lang === 'All' ? query : `${query} ${lang}`) 
+      const q = query
+        ? (lang === 'All' ? query : `${query} ${lang}`)
         : (lang === 'All' ? 'latest trending songs' : `${lang} latest songs`);
       const endpoint = `/search?q=${encodeURIComponent(q)}`;
-       const response = await fetch(`${API_URL}${endpoint}`);
+      const response = await fetch(`${API_URL}${endpoint}`);
       const data = await response.json();
       const results = data || [];
-      
+
       if (query) {
         setSearchResults(results);
         setFeedTracks(results); // Update bottom list too
@@ -79,7 +79,7 @@ export default function MusicScreen() {
         setFeedTracks(results);
         setSearchResults([]);
       }
-      
+
       return results;
     } catch (error) {
       console.error('Error fetching music:', error);
@@ -114,7 +114,7 @@ export default function MusicScreen() {
 
       const response = await fetch(`${API_URL}/stream/${videoId}`);
       const data = await response.json();
-      
+
       if (!data.url) {
         console.error('[Music] No stream URL returned from backend');
         return;
@@ -127,17 +127,17 @@ export default function MusicScreen() {
         { shouldPlay: true, volume: 1.0 },
         onPlaybackStatusUpdate
       );
-      
+
       sound.current = newSound;
-      
+
       // Explicitly call play to be certain on iOS
       await newSound.playAsync();
-      
+
       if (status.isLoaded) {
         const duration = status.durationMillis ? (status.durationMillis / 1000).toFixed(1) : 'unknown';
         console.log(`[Music] Sound loaded successfully. Duration: ${duration}s`);
       }
-      
+
       setIsPlaying(true);
     } catch (error) {
       console.error('[Music] Error playing sound:', error);
@@ -261,7 +261,7 @@ export default function MusicScreen() {
     setTimeout(() => setRefreshing(false), 2000);
   };
 
-  const filteredPlaylists = PLAYLISTS.filter(p => 
+  const filteredPlaylists = PLAYLISTS.filter(p =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -271,7 +271,7 @@ export default function MusicScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PullToRefreshCar scrollY={scrollY} />
-      <Animated.ScrollView 
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -100 && !refreshing) handleRefresh(); }}
@@ -302,7 +302,7 @@ export default function MusicScreen() {
               </TouchableOpacity>
             )}
           </View>
-          
+
           {/* Floating Search Results */}
           {searchResults.length > 0 && (
             <View style={[styles.floatingResults, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -310,35 +310,36 @@ export default function MusicScreen() {
                 {searchResults.map((track, index) => {
                   const isLiked = likedTracks.some(t => t.id === track.id);
                   return (
-                  <TouchableOpacity 
-                    key={track.id} 
-                    style={styles.floatingResultItem}
-                    onPress={() => {
-                      const newQueue = [track, ...searchResults.filter(t => t.id !== track.id)];
-                      setQueue(newQueue);
-                      setCurrentTrackIndex(0);
-                      setCurrentTime(0);
-                      playSound(track.id);
-                      setSearchQuery('');
-                      setSearchResults([]);
-                    }}
-                  >
-                    <Image source={{ uri: track.cover }} style={styles.floatingThumb} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.floatingTitle, { color: colors.text }]} numberOfLines={1}>{track.title}</Text>
-                      <Text style={[styles.floatingArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>{track.artist}</Text>
-                    </View>
-                    <TouchableOpacity 
-                      onPress={(e) => { 
-                        e.stopPropagation(); 
-                        toggleLike(track); 
-                      }} 
-                      style={{ padding: 4 }}
+                    <TouchableOpacity
+                      key={track.id}
+                      style={styles.floatingResultItem}
+                      onPress={() => {
+                        const newQueue = [track, ...searchResults.filter(t => t.id !== track.id)];
+                        setQueue(newQueue);
+                        setCurrentTrackIndex(0);
+                        setCurrentTime(0);
+                        playSound(track.id);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }}
                     >
-                      <Heart size={20} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                      <Image source={{ uri: track.cover }} style={styles.floatingThumb} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.floatingTitle, { color: colors.text }]} numberOfLines={1}>{track.title}</Text>
+                        <Text style={[styles.floatingArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>{track.artist}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleLike(track);
+                        }}
+                        style={{ padding: 4 }}
+                      >
+                        <Heart size={20} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                )})}
+                  )
+                })}
               </ScrollView>
             </View>
           )}
@@ -348,16 +349,16 @@ export default function MusicScreen() {
         <View style={styles.languageContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languageRow}>
             {LANGUAGES.map((lang) => (
-              <TouchableOpacity 
-                key={lang} 
+              <TouchableOpacity
+                key={lang}
                 style={[
-                  styles.languageChip, 
+                  styles.languageChip,
                   { backgroundColor: selectedLanguage === lang ? colors.tint : colors.card, borderColor: colors.border }
                 ]}
                 onPress={() => handleLanguageSelect(lang)}
               >
                 <Text style={[
-                  styles.languageText, 
+                  styles.languageText,
                   { color: selectedLanguage === lang ? '#fff' : colors.text }
                 ]}>
                   {lang}
@@ -386,12 +387,12 @@ export default function MusicScreen() {
             <TouchableOpacity onPress={() => setIsShuffle(!isShuffle)}>
               <Shuffle size={20} color={isShuffle ? colors.tint : colors.tabIconDefault} />
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={handlePrev}>
               <SkipBack size={32} fill={colors.text} color={colors.text} />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.playBtn, { backgroundColor: colors.tint }]}
               onPress={togglePlayback}
             >
@@ -401,11 +402,11 @@ export default function MusicScreen() {
                 <Play size={28} fill="#fff" color="#fff" style={{ marginLeft: 4 }} />
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={() => handleNext()}>
               <SkipForward size={32} fill={colors.text} color={colors.text} />
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={() => setIsRepeat(!isRepeat)}>
               <Repeat size={20} color={isRepeat ? colors.tint : colors.tabIconDefault} />
             </TouchableOpacity>
@@ -422,53 +423,54 @@ export default function MusicScreen() {
               const isActive = currentTrack.id === track.id;
               const isLiked = likedTracks.some(t => t.id === track.id);
               return (
-              <TouchableOpacity 
-                key={`${track.id}-${index}`} 
-                style={[
-                  styles.trackItem, 
-                  { backgroundColor: isActive ? colors.card : 'transparent' }
-                ]}
-                onPress={() => {
-                  const newQueue = [track, ...feedTracks.filter(t => t.id !== track.id)];
-                  setQueue(newQueue);
-                  setCurrentTrackIndex(0);
-                  setCurrentTime(0);
-                  playSound(track.id);
-                }}
-              >
-                <Image source={{ uri: track.cover }} style={styles.trackThumb} />
-                <View style={styles.trackDetails}>
-                  <Text 
-                    style={[
-                      styles.trackListTitle, 
-                      { color: isActive ? colors.tint : colors.text }
-                    ]} 
-                    numberOfLines={1}
-                  >
-                    {track.title}
-                  </Text>
-                  <Text style={[styles.trackListArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>
-                    {track.artist}
-                  </Text>
-                </View>
-                {isActive && isPlaying && (
-                  <View style={styles.playingIndicator}>
-                    <View style={[styles.playingBar, { height: 12, backgroundColor: colors.tint }]} />
-                    <View style={[styles.playingBar, { height: 18, backgroundColor: colors.tint }]} />
-                    <View style={[styles.playingBar, { height: 10, backgroundColor: colors.tint }]} />
-                  </View>
-                )}
-                <TouchableOpacity 
-                  onPress={(e) => { 
-                    e.stopPropagation(); 
-                    toggleLike(track); 
-                  }} 
-                  style={{ padding: 8, marginLeft: 8 }}
+                <TouchableOpacity
+                  key={`${track.id}-${index}`}
+                  style={[
+                    styles.trackItem,
+                    { backgroundColor: isActive ? colors.card : 'transparent' }
+                  ]}
+                  onPress={() => {
+                    const newQueue = [track, ...feedTracks.filter(t => t.id !== track.id)];
+                    setQueue(newQueue);
+                    setCurrentTrackIndex(0);
+                    setCurrentTime(0);
+                    playSound(track.id);
+                  }}
                 >
-                  <Heart size={22} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                  <Image source={{ uri: track.cover }} style={styles.trackThumb} />
+                  <View style={styles.trackDetails}>
+                    <Text
+                      style={[
+                        styles.trackListTitle,
+                        { color: isActive ? colors.tint : colors.text }
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {track.title}
+                    </Text>
+                    <Text style={[styles.trackListArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>
+                      {track.artist}
+                    </Text>
+                  </View>
+                  {isActive && isPlaying && (
+                    <View style={styles.playingIndicator}>
+                      <View style={[styles.playingBar, { height: 12, backgroundColor: colors.tint }]} />
+                      <View style={[styles.playingBar, { height: 18, backgroundColor: colors.tint }]} />
+                      <View style={[styles.playingBar, { height: 10, backgroundColor: colors.tint }]} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      toggleLike(track);
+                    }}
+                    style={{ padding: 8, marginLeft: 8 }}
+                  >
+                    <Heart size={22} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            )})}
+              )
+            })}
             {loading && feedTracks.length === 0 && (
               <Text style={[styles.loadingText, { color: colors.tabIconDefault }]}>Finding the perfect tracks...</Text>
             )}
@@ -499,8 +501,8 @@ export default function MusicScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               {likedTracks.length > 0 ? (
                 likedTracks.map((track) => (
-                  <TouchableOpacity 
-                    key={track.id} 
+                  <TouchableOpacity
+                    key={track.id}
                     style={styles.likedTrackItem}
                     onPress={() => {
                       const newQueue = [track, ...likedTracks.filter(t => t.id !== track.id)];
