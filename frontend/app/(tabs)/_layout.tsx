@@ -76,8 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="music"
         options={{
-          title: 'Music',
-          tabBarIcon: ({ color }) => <Music size={22} stroke={color} />,
+          href: null,
         }}
       />
     </Tabs>

@@ -1,600 +1,438 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Pressable, PanResponder, Modal, Platform } from 'react-native';
-import { PullToRefreshCar } from '../../components/PullToRefreshCar';
-import { Play, Pause, SkipForward, SkipBack, Repeat, Shuffle, ListMusic, Heart, Search, X } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Modal, Platform, StatusBar } from 'react-native';
+import { Play, Pause, SkipForward, SkipBack, Heart, Search, X, ChevronDown, MoreHorizontal, ArrowRight, Sparkles, Music, Shuffle, Repeat } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
-import { Audio } from 'expo-av';
+import { useRouter } from 'expo-router';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-// Default placeholder if no tracks are loaded yet
-const PLACEHOLDER_TRACK = {
-  id: 'loading',
-  title: 'Loading music...',
-  artist: 'Please wait',
-  cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop',
-  duration: 0
-};
+const MOCK_TRACKS = [
+  { id: '1', title: 'Late Night Drive', artist: 'Neon Lights', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500', color: '#6366f1' },
+  { id: '2', title: 'Sunset Boulevard', artist: 'The Dreamers', cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500', color: '#ec4899' },
+  { id: '3', title: 'Urban Echo', artist: 'City Pulse', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500', color: '#8b5cf6' },
+  { id: '4', title: 'Electric Soul', artist: 'Future Retro', cover: 'https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=500', color: '#06b6d4' },
+  { id: '5', title: 'Golden Hour', artist: 'Amber Sky', cover: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a2?q=80&w=500', color: '#f59e0b' },
+  { id: '6', title: 'Midnight City', artist: 'M83', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500', color: '#3b82f6' },
+  { id: '7', title: 'Starboy', artist: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500', color: '#ef4444' },
+  { id: '8', title: 'Blinding Lights', artist: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500', color: '#f59e0b' },
+  { id: '9', title: 'Levitating', artist: 'Dua Lipa', cover: 'https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=500', color: '#ec4899' },
+  { id: '10', title: 'Heat Waves', artist: 'Glass Animals', cover: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a2?q=80&w=500', color: '#8b5cf6' },
+  { id: '11', title: 'Circle', artist: 'Post Malone', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500', color: '#3b82f6' },
+  { id: '12', title: 'Sunflower', artist: 'Post Malone', cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500', color: '#ef4444' },
+  { id: '13', title: 'Mood', artist: '24kGoldn', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500', color: '#f59e0b' },
+  { id: '14', title: 'Stay', artist: 'The Kid LAROI', cover: 'https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=500', color: '#ec4899' },
+  { id: '15', title: 'Peaches', artist: 'Justin Bieber', cover: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a2?q=80&w=500', color: '#8b5cf6' },
+  { id: '16', title: 'Bad Habits', artist: 'Ed Sheeran', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500', color: '#3b82f6' },
+  { id: '17', title: 'Shivers', artist: 'Ed Sheeran', cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500', color: '#ef4444' },
+  { id: '18', title: 'Cold Heart', artist: 'Elton John', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500', color: '#f59e0b' },
+  { id: '19', title: 'Easy On Me', artist: 'Adele', cover: 'https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=500', color: '#ec4899' },
+  { id: '20', title: 'Ghost', artist: 'Justin Bieber', cover: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a2?q=80&w=500', color: '#8b5cf6' },
+];
 
-const PLAYLISTS: any[] = [];
-
-const LANGUAGES = ['All', 'Telugu', 'Hindi', 'English', 'Punjabi', 'Tamil', 'Kannada'];
+const LANGUAGES = ['Telugu', 'Hindi', 'English', 'Tamil', 'Global'];
 
 export default function MusicScreen() {
-  const { colors } = useTheme();
-
-  // Connect to your live Vercel backend
-  const API_URL = 'https://trip-ilpw.onrender.com';
-  //const API_URL = 'http://192.168.1.218:8000';
+  const { colors, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [currentTrack, setCurrentTrack] = useState(MOCK_TRACKS[0]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [likedSongs, setLikedSongs] = useState<string[]>(['1', '3']);
+  const [playerModalVisible, setPlayerModalVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [likedModalVisible, setLikedModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeLanguage, setActiveLanguage] = useState('Telugu');
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('none');
 
   const scrollY = useRef(new Animated.Value(0)).current;
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('All');
-  const [loading, setLoading] = useState(false);
 
-  // Player State
-  const [queue, setQueue] = useState<any[]>([]);
-  const [feedTracks, setFeedTracks] = useState<any[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const sound = useRef<Audio.Sound | null>(null);
-  const [likedTracks, setLikedTracks] = useState<any[]>([]);
-  const [likedSongsModalVisible, setLikedSongsModalVisible] = useState(false);
-  const [isShuffle, setIsShuffle] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [seekTime, setSeekTime] = useState(0);
-  const [progressBarWidth, setProgressBarWidth] = useState(0);
-
-  const currentTrack = queue.length > 0 && currentTrackIndex < queue.length
-    ? queue[currentTrackIndex]
-    : (loading ? PLACEHOLDER_TRACK : { ...PLACEHOLDER_TRACK, title: 'No tracks found', artist: 'Try another search' });
-  const isCurrentTrackLiked = likedTracks.some(t => t.id === currentTrack.id);
-
-  const fetchMusic = async (query?: string, language?: string, updateQueue: boolean = false) => {
-    setLoading(true);
-    const lang = language || selectedLanguage;
-    try {
-      // If no query, fetch latest for the language
-      const q = query
-        ? (lang === 'All' ? query : `${query} ${lang}`)
-        : (lang === 'All' ? 'latest trending songs' : `${lang} latest songs`);
-      const endpoint = `/search?q=${encodeURIComponent(q)}`;
-      const response = await fetch(`${API_URL}${endpoint}`);
-      const data = await response.json();
-      const results = data || [];
-
-      if (query) {
-        setSearchResults(results);
-        setFeedTracks(results); // Update bottom list too
-      } else {
-        if (updateQueue || queue.length === 0) {
-          setQueue(results);
-          setCurrentTrackIndex(0);
-          setCurrentTime(0);
-        }
-        setFeedTracks(results);
-        setSearchResults([]);
-      }
-
-      return results;
-    } catch (error) {
-      console.error('Error fetching music:', error);
-      return [];
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMusic(undefined, undefined, true); // Initial load for default language
-  }, []);
-
-  const handleLanguageSelect = async (lang: string) => {
-    setSelectedLanguage(lang);
-    setSearchQuery('');
-    setSearchResults([]);
-    const results = await fetchMusic(undefined, lang, true);
-    if (results && results.length > 0) {
-      playSound(results[0].id);
-    }
-  };
-
-  // Sound Management
-  async function playSound(videoId: string) {
-    console.log(`[Music] Fetching stream for: ${videoId}`);
-    try {
-      if (sound.current) {
-        await sound.current.unloadAsync();
-      }
-
-      const response = await fetch(`${API_URL}/stream/${videoId}`);
-      const data = await response.json();
-
-      if (!data.url) {
-        console.error('[Music] No stream URL returned from backend');
-        return;
-      }
-
-      console.log(`[Music] Playing stream: ${data.url.substring(0, 50)}...`);
-
-      const { sound: newSound, status } = await Audio.Sound.createAsync(
-        { uri: data.url },
-        { shouldPlay: true, volume: 1.0 },
-        onPlaybackStatusUpdate
-      );
-
-      sound.current = newSound;
-
-      // Explicitly call play to be certain on iOS
-      await newSound.playAsync();
-
-      if (status.isLoaded) {
-        const duration = status.durationMillis ? (status.durationMillis / 1000).toFixed(1) : 'unknown';
-        console.log(`[Music] Sound loaded successfully. Duration: ${duration}s`);
-      }
-
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('[Music] Error playing sound:', error);
-    }
-  }
-
-  async function togglePlayback() {
-    console.log(`[Music] Toggle playback. Current track: ${currentTrack.title}`);
-    if (!sound.current) {
-      if (currentTrack.id !== 'loading') {
-        await playSound(currentTrack.id);
-      }
-      return;
-    }
-
-    if (isPlaying) {
-      await sound.current.pauseAsync();
-      setIsPlaying(false);
-    } else {
-      await sound.current.playAsync();
-      setIsPlaying(true);
-    }
-  }
-
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      if (!isSeeking) {
-        setCurrentTime(status.positionMillis / 1000);
-      }
-      if (status.didJustFinish) {
-        handleNext(true);
-      }
-    } else if (status.error) {
-      console.error(`[Music] Playback error: ${status.error}`);
-    }
-  };
-
-  useEffect(() => {
-    // Configure audio for iOS
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-    });
-
-    return () => {
-      if (sound.current) {
-        sound.current.unloadAsync();
-      }
-    };
-  }, []);
-
-  // Sync index change with sound
-  useEffect(() => {
-    if (isPlaying && queue.length > 0 && currentTrackIndex < queue.length) {
-      playSound(queue[currentTrackIndex].id);
-    }
-  }, [currentTrackIndex]);
-
-  const toggleLike = (track: any) => {
-    setLikedTracks((prev) => {
-      const exists = prev.find(t => t.id === track.id);
-      if (exists) return prev.filter(t => t.id !== track.id);
-      return [...prev, track];
-    });
-  };
-
-  // Live Search Effect (Debounced)
-  useEffect(() => {
-    if (searchQuery.trim().length > 2) {
-      const delayDebounceFn = setTimeout(() => {
-        fetchMusic(searchQuery);
-      }, 500);
-
-      return () => clearTimeout(delayDebounceFn);
-    } else if (searchQuery.trim().length === 0) {
-      fetchMusic(); // Reset to trending/latest if cleared
-    }
-  }, [searchQuery]);
-
-  const progressBarWidthRef = useRef(0);
-  const durationRef = useRef(currentTrack.duration);
-  const dragStartTimeRef = useRef(0);
-
-  useEffect(() => {
-    durationRef.current = currentTrack.duration;
-  }, [currentTrack.duration]);
-
-
-
-  const handleNext = (isAuto = false) => {
-    if (isRepeat && isAuto) {
-      setCurrentTime(0);
-      return;
-    }
-
-    if (isShuffle) {
-      setCurrentTrackIndex(Math.floor(Math.random() * queue.length));
-    } else {
-      setCurrentTrackIndex((prev) => (prev + 1) % queue.length);
-    }
-    setCurrentTime(0);
-  };
-
-  const handlePrev = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + queue.length) % queue.length);
-    setCurrentTime(0);
-  };
-
-  const formatTime = (seconds: number) => {
-    const totalSeconds = Math.floor(seconds);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 2000);
-  };
-
-  const filteredPlaylists = PLAYLISTS.filter(p =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredTracks = MOCK_TRACKS.filter(track =>
+    track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    track.artist.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const displayTime = isSeeking ? seekTime : currentTime;
-  const progressPercent = (displayTime / currentTrack.duration) * 100;
+  const toggleLike = (id: string) => {
+    setLikedSongs(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <PullToRefreshCar scrollY={scrollY} />
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -100 && !refreshing) handleRefresh(); }}
-        scrollEventThrottle={16}
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Travel Music</Text>
-          <TouchableOpacity onPress={() => setLikedSongsModalVisible(true)}>
-            <Heart size={26} color={likedTracks.length > 0 ? '#ef4444' : colors.text} fill={likedTracks.length > 0 ? '#ef4444' : 'transparent'} />
-          </TouchableOpacity>
-        </View>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? colors.background : '#ffffff' }]}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        {/* Music Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Search size={20} color={colors.tabIconDefault} />
-            <TextInput
-              placeholder="Search playlists or artists..."
-              placeholderTextColor={colors.tabIconDefault}
-              style={[styles.searchInput, { color: colors.text }]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <X size={20} color={colors.tabIconDefault} />
-              </TouchableOpacity>
-            )}
-          </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        >
+          {/* Cinematic Header - Matching Index Page */}
+          <View style={styles.heroHeader}>
+            <View style={styles.headerTop}>
+              <View style={styles.hubLeft}>
+                <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>ROADMIX</Text>
+                <Text style={[styles.name, { color: colors.text }]}>Now Playing</Text>
+              </View>
 
-          {/* Floating Search Results */}
-          {searchResults.length > 0 && (
-            <View style={[styles.floatingResults, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 300 }}>
-                {searchResults.map((track, index) => {
-                  const isLiked = likedTracks.some(t => t.id === track.id);
-                  return (
-                    <TouchableOpacity
-                      key={track.id}
-                      style={styles.floatingResultItem}
-                      onPress={() => {
-                        const newQueue = [track, ...searchResults.filter(t => t.id !== track.id)];
-                        setQueue(newQueue);
-                        setCurrentTrackIndex(0);
-                        setCurrentTime(0);
-                        playSound(track.id);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                    >
-                      <Image source={{ uri: track.cover }} style={styles.floatingThumb} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.floatingTitle, { color: colors.text }]} numberOfLines={1}>{track.title}</Text>
-                        <Text style={[styles.floatingArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>{track.artist}</Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleLike(track);
-                        }}
-                        style={{ padding: 4 }}
-                      >
-                        <Heart size={20} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  )
-                })}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-
-        {/* Language Filters */}
-        <View style={styles.languageContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languageRow}>
-            {LANGUAGES.map((lang) => (
               <TouchableOpacity
-                key={lang}
-                style={[
-                  styles.languageChip,
-                  { backgroundColor: selectedLanguage === lang ? colors.tint : colors.card, borderColor: colors.border }
-                ]}
-                onPress={() => handleLanguageSelect(lang)}
+                style={styles.topHeartBtn}
+                onPress={() => setLikedModalVisible(true)}
               >
-                <Text style={[
-                  styles.languageText,
-                  { color: selectedLanguage === lang ? '#fff' : colors.text }
-                ]}>
-                  {lang}
-                </Text>
+                <Heart size={26} color="#ef4444" fill="#ef4444" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Featured Player Card */}
-        <View style={[styles.playerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Image source={{ uri: currentTrack.cover }} style={styles.coverArt} />
-          <View style={[styles.trackInfo, { marginBottom: 32 }]}>
-            <View style={styles.trackMain}>
-              <Text style={[styles.trackTitle, { color: colors.text }]}>{currentTrack.title}</Text>
-              <Text style={[styles.trackArtist, { color: colors.tabIconDefault }]}>
-                {currentTrack.artist}  •  {formatTime(currentTime)} / {formatTime(currentTrack.duration)}
-              </Text>
             </View>
-            <TouchableOpacity onPress={() => toggleLike(currentTrack)}>
-              <Heart size={26} fill={isCurrentTrackLiked ? '#ef4444' : 'transparent'} color={isCurrentTrackLiked ? '#ef4444' : colors.tabIconDefault} />
-            </TouchableOpacity>
-          </View>
-          {/* Controls */}
-          <View style={styles.controls}>
-            <TouchableOpacity onPress={() => setIsShuffle(!isShuffle)}>
-              <Shuffle size={20} color={isShuffle ? colors.tint : colors.tabIconDefault} />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handlePrev}>
-              <SkipBack size={32} fill={colors.text} color={colors.text} />
-            </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.playBtn, { backgroundColor: colors.tint }]}
-              onPress={togglePlayback}
+              style={[styles.searchBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderColor: colors.border, borderWidth: 1.5, marginTop: 20, paddingHorizontal: 16, width: '100%', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }]}
+              onPress={() => setSearchVisible(true)}
             >
-              {isPlaying ? (
-                <Pause size={28} fill="#fff" color="#fff" />
-              ) : (
-                <Play size={28} fill="#fff" color="#fff" style={{ marginLeft: 4 }} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => handleNext()}>
-              <SkipForward size={32} fill={colors.text} color={colors.text} />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setIsRepeat(!isRepeat)}>
-              <Repeat size={20} color={isRepeat ? colors.tint : colors.tabIconDefault} />
+              <Search size={20} color={colors.tabIconDefault} />
+              <Text style={{ color: colors.tabIconDefault, fontWeight: '600', marginLeft: 12 }}>Search tracks...</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Playlists (Now Search Results / Latest Hits) */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {searchQuery ? 'Search Results' : `${selectedLanguage} Latest Hits`}
-          </Text>
-          <View style={styles.trackList}>
-            {feedTracks.map((track, index) => {
-              const isActive = currentTrack.id === track.id;
-              const isLiked = likedTracks.some(t => t.id === track.id);
-              return (
+          {/* Language Selector */}
+          <View style={styles.languageContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languageInner}>
+              {LANGUAGES.map(lang => (
                 <TouchableOpacity
-                  key={`${track.id}-${index}`}
+                  key={lang}
+                  onPress={() => setActiveLanguage(lang)}
                   style={[
-                    styles.trackItem,
-                    { backgroundColor: isActive ? colors.card : 'transparent' }
+                    styles.languageChip,
+                    activeLanguage === lang ? { backgroundColor: colors.tint } : { backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderColor: colors.border, borderWidth: 1.5 }
                   ]}
-                  onPress={() => {
-                    const newQueue = [track, ...feedTracks.filter(t => t.id !== track.id)];
-                    setQueue(newQueue);
-                    setCurrentTrackIndex(0);
-                    setCurrentTime(0);
-                    playSound(track.id);
-                  }}
                 >
-                  <Image source={{ uri: track.cover }} style={styles.trackThumb} />
-                  <View style={styles.trackDetails}>
-                    <Text
-                      style={[
-                        styles.trackListTitle,
-                        { color: isActive ? colors.tint : colors.text }
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {track.title}
-                    </Text>
-                    <Text style={[styles.trackListArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>
-                      {track.artist}
-                    </Text>
-                  </View>
-                  {isActive && isPlaying && (
-                    <View style={styles.playingIndicator}>
-                      <View style={[styles.playingBar, { height: 12, backgroundColor: colors.tint }]} />
-                      <View style={[styles.playingBar, { height: 18, backgroundColor: colors.tint }]} />
-                      <View style={[styles.playingBar, { height: 10, backgroundColor: colors.tint }]} />
-                    </View>
-                  )}
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleLike(track);
-                    }}
-                    style={{ padding: 8, marginLeft: 8 }}
-                  >
-                    <Heart size={22} fill={isLiked ? '#ef4444' : 'transparent'} color={isLiked ? '#ef4444' : colors.tabIconDefault} />
-                  </TouchableOpacity>
+                  <Text style={[styles.languageText, activeLanguage === lang ? { color: '#fff' } : { color: colors.text }]}>{lang}</Text>
                 </TouchableOpacity>
-              )
-            })}
-            {loading && feedTracks.length === 0 && (
-              <Text style={[styles.loadingText, { color: colors.tabIconDefault }]}>Finding the perfect tracks...</Text>
-            )}
+              ))}
+            </ScrollView>
           </View>
-        </View>
-      </Animated.ScrollView>
-      {/* Liked Songs Modal */}
-      <Modal
-        visible={likedSongsModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setLikedSongsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={[styles.modalHeartIcon, { backgroundColor: '#ef444415' }]}>
-                  <Heart size={20} color="#ef4444" fill="#ef4444" />
-                </View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Liked Songs</Text>
+
+          {/* Featured Hero Card - Matching Index Page */}
+          <View style={styles.sectionTitleRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Currently Playing</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.heroCard}
+            activeOpacity={0.9}
+            onPress={() => setPlayerModalVisible(true)}
+          >
+            <Image source={{ uri: currentTrack.cover }} style={styles.heroImage} />
+            <View style={styles.heroOverlay}>
+              <View style={styles.heroBadge}>
+                <Music size={14} color="#fff" />
+                <Text style={styles.heroBadgeText}>{isPlaying ? 'PLAYING' : 'PAUSED'}</Text>
               </View>
-              <TouchableOpacity onPress={() => setLikedSongsModalVisible(false)}>
-                <X size={24} color={colors.text} />
+
+              <View style={styles.heroBottom}>
+                <View>
+                  <Text style={styles.heroTitle}>{currentTrack.title}</Text>
+                  <Text style={styles.heroSub}>{currentTrack.artist}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.heroAction}
+                  onPress={() => setIsPlaying(!isPlaying)}
+                >
+                  {isPlaying ? <Pause size={20} color="#000" /> : <Play size={20} color="#000" fill="#000" style={{ marginLeft: 3 }} />}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Trending List - Matching Action Cards style */}
+          <View style={styles.sectionTitleRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{activeLanguage} Songs</Text>
+          </View>
+
+          <View style={styles.trackGrid}>
+            {filteredTracks.map((track) => (
+              <TouchableOpacity
+                key={track.id}
+                style={[styles.trackCard, { backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderColor: colors.border }]}
+                onPress={() => {
+                  setCurrentTrack(track);
+                  setIsPlaying(true);
+                }}
+              >
+                <Image source={{ uri: track.cover }} style={styles.trackThumb} />
+                <View style={styles.trackInfo}>
+                  <Text style={[styles.trackTitle, { color: colors.text }]} numberOfLines={1}>{track.title}</Text>
+                  <Text style={[styles.trackArtist, { color: colors.tabIconDefault }]} numberOfLines={1}>{track.artist}</Text>
+                </View>
+                <TouchableOpacity onPress={() => toggleLike(track.id)} style={styles.trackLike}>
+                  <Heart
+                    size={24}
+                    color={likedSongs.includes(track.id) ? '#ef4444' : colors.tabIconDefault}
+                    fill={likedSongs.includes(track.id) ? '#ef4444' : 'transparent'}
+                  />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        <Modal visible={searchVisible} animationType="fade" transparent={true}>
+          <View style={[styles.searchOverlay, { backgroundColor: colors.background + 'F0', paddingTop: insets.top }]}>
+            <View style={styles.searchHeader}>
+              <View style={[styles.searchBar, { backgroundColor: colors.border + '50' }]}>
+                <Search size={20} color={colors.tabIconDefault} />
+                <TextInput
+                  placeholder="Search music..."
+                  placeholderTextColor={colors.tabIconDefault}
+                  style={[styles.searchInput, { color: colors.text }]}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <X size={20} color={colors.tabIconDefault} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => setSearchVisible(false)}>
+                <Text style={[styles.cancelText, { color: colors.tint }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-              {likedTracks.length > 0 ? (
-                likedTracks.map((track) => (
+            <ScrollView style={{ paddingHorizontal: 24 }}>
+              {filteredTracks.map(track => (
+                <TouchableOpacity
+                  key={track.id + '_search'}
+                  style={styles.searchResult}
+                  onPress={() => {
+                    setCurrentTrack(track);
+                    setIsPlaying(true);
+                    setSearchVisible(false);
+                  }}
+                >
+                  <Image source={{ uri: track.cover }} style={styles.searchThumb} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.searchTitle, { color: colors.text }]}>{track.title}</Text>
+                    <Text style={[styles.searchArtist, { color: colors.tabIconDefault }]}>{track.artist}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => toggleLike(track.id)} style={{ padding: 10 }}>
+                    <Heart
+                      size={26}
+                      color={likedSongs.includes(track.id) ? '#ef4444' : colors.tabIconDefault}
+                      fill={likedSongs.includes(track.id) ? '#ef4444' : 'transparent'}
+                    />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* Liked Songs Library Modal */}
+        <Modal visible={likedModalVisible} animationType="slide" transparent={true}>
+          <View style={[styles.searchOverlay, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+            <View style={styles.searchHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>LIBRARY</Text>
+                <Text style={[styles.name, { color: colors.text, fontSize: 24 }]}>Liked Songs</Text>
+              </View>
+              <TouchableOpacity onPress={() => setLikedModalVisible(false)} style={styles.closeBtn}>
+                <X size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ paddingHorizontal: 24 }}>
+              {MOCK_TRACKS.filter(track => likedSongs.includes(track.id)).length === 0 ? (
+                <View style={{ alignItems: 'center', marginTop: 100 }}>
+                  <Heart size={60} color={colors.border} />
+                  <Text style={{ color: colors.tabIconDefault, fontSize: 16, fontWeight: '700', marginTop: 20 }}>No liked songs yet</Text>
+                </View>
+              ) : (
+                MOCK_TRACKS.filter(track => likedSongs.includes(track.id)).map(track => (
                   <TouchableOpacity
-                    key={track.id}
-                    style={styles.likedTrackItem}
+                    key={track.id + '_liked'}
+                    style={styles.searchResult}
                     onPress={() => {
-                      const newQueue = [track, ...likedTracks.filter(t => t.id !== track.id)];
-                      setQueue(newQueue);
-                      setCurrentTrackIndex(0);
-                      setCurrentTime(0);
-                      playSound(track.id);
-                      setLikedSongsModalVisible(false);
+                      setCurrentTrack(track);
+                      setIsPlaying(true);
+                      setLikedModalVisible(false);
                     }}
                   >
-                    <Image source={{ uri: track.cover }} style={styles.likedTrackCover} />
+                    <Image source={{ uri: track.cover }} style={styles.searchThumb} />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.likedTrackTitle, { color: colors.text }]}>{track.title}</Text>
-                      <Text style={[styles.likedTrackArtist, { color: colors.tabIconDefault }]}>{track.artist}</Text>
+                      <Text style={[styles.searchTitle, { color: colors.text }]}>{track.title}</Text>
+                      <Text style={[styles.searchArtist, { color: colors.tabIconDefault }]}>{track.artist}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => toggleLike(track)} style={{ padding: 8 }}>
-                      <Heart size={20} color="#ef4444" fill="#ef4444" />
+                    <TouchableOpacity onPress={() => toggleLike(track.id)} style={{ padding: 10 }}>
+                      <Heart size={22} color="#ef4444" fill="#ef4444" />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))
-              ) : (
-                <View style={styles.emptyLiked}>
-                  <Heart size={48} color={colors.border} />
-                  <Text style={[styles.emptyLikedText, { color: colors.tabIconDefault }]}>No liked songs yet.</Text>
-                </View>
               )}
             </ScrollView>
           </View>
+        </Modal>
+
+        {/* Floating Mini Player - Matching Profile Hub style */}
+        <View style={styles.miniPlayerWrapper}>
+          <TouchableOpacity
+            style={[styles.miniPlayer, { backgroundColor: colors.background, borderColor: colors.border }]}
+            onPress={() => setPlayerModalVisible(true)}
+          >
+            <Image source={{ uri: currentTrack.cover }} style={styles.miniAvatar} />
+            <View style={styles.miniContent}>
+              <Text style={[styles.miniName, { color: colors.text }]} numberOfLines={1}>{currentTrack.title}</Text>
+              <Text style={[styles.miniSub, { color: colors.tabIconDefault }]}>{currentTrack.artist}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.miniPlayBtn, { backgroundColor: colors.tint }]}
+              onPress={() => setIsPlaying(!isPlaying)}
+            >
+              {isPlaying ? <Pause size={20} color="#fff" /> : <Play size={20} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
+            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        {/* Full Player Modal */}
+        <Modal visible={playerModalVisible} animationType="slide">
+        <View style={[styles.fullPlayer, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={{ flex: 1 }}>
+              <View style={styles.fullHeader}>
+                <TouchableOpacity onPress={() => setPlayerModalVisible(false)} style={styles.closeBtn}>
+                  <ChevronDown size={28} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.fullHeaderText, { color: colors.tabIconDefault }]}>PLAYING NOW</Text>
+                <View style={{ width: 32 }} />
+              </View>
+
+              <View style={styles.fullContent}>
+                <View style={[styles.fullArtworkWrapper, { shadowColor: currentTrack.color }]}>
+                  <Image source={{ uri: currentTrack.cover }} style={styles.fullCover} />
+                </View>
+
+                <View style={styles.fullMeta}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fullTitle, { color: colors.text }]}>{currentTrack.title}</Text>
+                    <Text style={[styles.fullArtist, { color: colors.tabIconDefault }]}>{currentTrack.artist}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => toggleLike(currentTrack.id)}>
+                    <Heart
+                      size={40}
+                      color={likedSongs.includes(currentTrack.id) ? '#ef4444' : colors.text}
+                      fill={likedSongs.includes(currentTrack.id) ? '#ef4444' : 'transparent'}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fullProgress}>
+                  <View style={[styles.fullProgressBar, { backgroundColor: colors.border }]}>
+                    <View style={[styles.fullProgressFill, { width: '45%', backgroundColor: colors.tint }]} />
+                  </View>
+                  <View style={styles.fullTimeRow}>
+                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>1:42</Text>
+                    <Text style={[styles.fullTime, { color: colors.tabIconDefault }]}>3:50</Text>
+                  </View>
+                </View>
+
+                <View style={styles.fullControls}>
+                  <TouchableOpacity><SkipBack size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.fullPlayBtn, { backgroundColor: colors.text }]}
+                    onPress={() => setIsPlaying(!isPlaying)}
+                  >
+                    {isPlaying ? (
+                      <Pause size={40} color={colors.background} fill={colors.background} />
+                    ) : (
+                      <Play size={40} color={colors.background} fill={colors.background} style={{ marginLeft: 6 }} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity><SkipForward size={40} color={colors.text} fill={colors.text} /></TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
     </SafeAreaView>
-  );
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
-  searchContainer: { paddingHorizontal: 20, marginBottom: 10 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 15, paddingHorizontal: 15, borderWidth: 1 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, fontWeight: '500' },
-  languageContainer: { marginBottom: 15 },
-  languageRow: { paddingHorizontal: 20, gap: 10 },
-  languageChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
-  languageText: { fontSize: 14, fontWeight: '700' },
-  playerCard: { margin: 20, padding: 24, borderRadius: 32, borderWidth: 1, elevation: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 15 },
-  coverArt: { width: '100%', height: width - 120, borderRadius: 24, marginBottom: 24 },
-  trackInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  trackMain: { flex: 1 },
-  trackTitle: { fontSize: 22, fontWeight: '900' },
-  trackArtist: { fontSize: 16, fontWeight: '600', marginTop: 4 },
-  progressContainer: { marginBottom: 28 },
-  progressBarWrapper: { height: 30, justifyContent: 'center', position: 'relative' },
-  progressBar: { height: 6, borderRadius: 3, width: '100%', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 3 },
-  seekerHandle: { position: 'absolute', width: 16, height: 16, borderRadius: 8, borderWidth: 3, marginLeft: -8, zIndex: 20 },
-  timeLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  timeText: { fontSize: 12, fontWeight: '700' },
-  controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 },
-  playBtn: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  section: { marginTop: 10, paddingBottom: 40 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', paddingHorizontal: 20, marginBottom: 15 },
-  playlistRow: { paddingHorizontal: 20, gap: 16 },
-  playlistCard: { width: 140 },
-  playlistCover: { width: 140, height: 140, borderRadius: 20, marginBottom: 10 },
-  playlistTitle: { fontSize: 15, fontWeight: '700' },
-  playlistTracks: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-  trackList: { paddingHorizontal: 20 },
-  trackItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginBottom: 8, gap: 12 },
-  trackThumb: { width: 50, height: 50, borderRadius: 10 },
-  trackDetails: { flex: 1 },
-  trackListTitle: { fontSize: 16, fontWeight: '700' },
-  trackListArtist: { fontSize: 13, fontWeight: '500', marginTop: 2 },
-  playingIndicator: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 20, paddingBottom: 2 },
-  playingBar: { width: 3, borderRadius: 1.5 },
-  loadingText: { textAlign: 'center', marginTop: 20, fontSize: 15, fontWeight: '600' },
-  floatingResults: { position: 'absolute', top: 60, left: 20, right: 20, borderRadius: 20, borderWidth: 1, zIndex: 100, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, padding: 8 },
-  floatingResultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12 },
-  floatingThumb: { width: 40, height: 40, borderRadius: 8 },
-  floatingTitle: { fontSize: 14, fontWeight: '700' },
-  floatingArtist: { fontSize: 12, fontWeight: '500' },
-  // Liked Songs Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 24, fontWeight: '900' },
-  modalHeartIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  likedTrackItem: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
-  likedTrackCover: { width: 56, height: 56, borderRadius: 12 },
-  likedTrackTitle: { fontSize: 16, fontWeight: '700' },
-  likedTrackArtist: { fontSize: 13, fontWeight: '500', marginTop: 2 },
-  emptyLiked: { alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 16 },
-  emptyLikedText: { fontSize: 16, fontWeight: '600' },
+  scrollContent: { paddingBottom: 120 },
+
+  heroHeader: { paddingTop: 10, paddingHorizontal: 24, paddingBottom: 24 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  hubLeft: { flex: 1 },
+  greeting: { fontSize: 13, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
+  name: { fontSize: 28, fontWeight: '900', marginTop: 2, letterSpacing: -0.5 },
+  searchBtn: { height: 54, borderRadius: 18, flexDirection: 'row', alignItems: 'center' },
+  topHeartBtn: { width: 44, height: 44, borderRadius: 16, backgroundColor: 'rgba(128,128,128,0.1)', justifyContent: 'center', alignItems: 'center', marginLeft: 16 },
+
+  languageContainer: { marginBottom: 32 },
+  languageInner: { paddingHorizontal: 24, gap: 10 },
+  languageChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
+  languageText: { fontSize: 14, fontWeight: '800' },
+
+  sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  headerActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12 },
+  seeAll: { fontSize: 13, fontWeight: '800' },
+
+  heroCard: { marginHorizontal: 24, height: 260, borderRadius: 32, overflow: 'hidden', marginBottom: 32, elevation: 20, shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
+  heroImage: { width: '100%', height: '100%' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', padding: 24, justifyContent: 'space-between' },
+  heroBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  heroBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  heroBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  heroTitle: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 16, fontWeight: '600', marginTop: 4 },
+  heroAction: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+
+  trackGrid: { paddingHorizontal: 24, gap: 12 },
+  trackCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 24, borderWidth: 1.5, elevation: 8, shadowOpacity: 0.06, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  trackThumb: { width: 56, height: 56, borderRadius: 16 },
+  trackInfo: { flex: 1, marginLeft: 16, gap: 4 },
+  trackTitle: { fontSize: 16, fontWeight: '800' },
+  trackArtist: { fontSize: 13, fontWeight: '600' },
+  trackLike: { padding: 8 },
+
+  // Mini Player
+  miniPlayerWrapper: { position: 'absolute', bottom: 30, left: 24, right: 24 },
+  miniPlayer: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 24, borderWidth: 1.5, elevation: 15, shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } },
+  miniAvatar: { width: 44, height: 44, borderRadius: 14 },
+  miniContent: { flex: 1, marginLeft: 16 },
+  miniName: { fontSize: 15, fontWeight: '800' },
+  miniSub: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  miniPlayBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+
+  // Full Player
+  fullPlayer: { flex: 1 },
+  fullHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20 },
+  fullHeaderText: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
+  closeBtn: { padding: 4 },
+  fullContent: { flex: 1, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center' },
+  fullArtworkWrapper: { elevation: 25, shadowOpacity: 0.4, shadowRadius: 40, shadowOffset: { width: 0, height: 20 }, marginBottom: 40 },
+  fullCover: { width: width - 80, height: width - 80, borderRadius: 32 },
+  fullMeta: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 30 },
+  fullTitle: { fontSize: 32, fontWeight: '900', letterSpacing: -1 },
+  fullArtist: { fontSize: 20, fontWeight: '600', marginTop: 5 },
+  fullProgress: { width: '100%', marginBottom: 40 },
+  fullProgressBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fullProgressFill: { height: '100%' },
+  fullTimeRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  fullTime: { fontSize: 12, fontWeight: '800' },
+  fullControls: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+  fullPlayBtn: { width: 84, height: 84, borderRadius: 42, justifyContent: 'center', alignItems: 'center', elevation: 12, shadowOpacity: 0.2, shadowRadius: 15 },
+
+  // Search
+  searchOverlay: { flex: 1 },
+  searchHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20, gap: 16 },
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 54, borderRadius: 16, gap: 12 },
+  searchInput: { flex: 1, fontSize: 16, fontWeight: '700' },
+  cancelText: { fontSize: 16, fontWeight: '700' },
+  searchResult: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
+  searchThumb: { width: 60, height: 60, borderRadius: 14 },
+  searchTitle: { fontSize: 16, fontWeight: '800' },
+  searchArtist: { fontSize: 13, fontWeight: '600', marginTop: 2 },
 });
