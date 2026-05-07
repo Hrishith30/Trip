@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions, PanResponder, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Music, Play, Sparkles, Compass, Plus } from 'lucide-react-native';
+import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Sparkles, Compass, Plus } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -179,7 +179,7 @@ export default function Dashboard() {
         </View>
         <View style={styles.actionGrid}>
           <QuickAction icon={Receipt} label="Split Bill" color="#10b981" onPress={() => router.push('/split')} />
-          <QuickAction icon={Music} label="Roadmix" color="#8b5cf6" onPress={() => router.push('/music')} />
+          <QuickAction icon={MapPin} label="Nearby" color="#ec4899" onPress={() => router.push('/explore')} />
           <QuickAction icon={Calendar} label="Plans" color="#f59e0b" onPress={() => router.push('/trips')} />
           <QuickAction icon={Compass} label="Find" color="#0ea5e9" onPress={() => router.push('/explore')} />
         </View>
@@ -187,15 +187,6 @@ export default function Dashboard() {
 
       </Animated.ScrollView>
 
-      {/* Modern Music FAB */}
-      <TouchableOpacity
-        style={[styles.musicFab, { backgroundColor: colors.tint, shadowColor: colors.tint }]}
-        activeOpacity={0.8}
-        onPress={() => router.push('/music')}
-      >
-        <Music size={24} color="#fff" />
-        <View style={styles.playingPulse} />
-      </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -237,6 +228,4 @@ const styles = StyleSheet.create({
 
 
 
-  musicFab: { position: 'absolute', bottom: 30, right: 25, width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', elevation: 12, shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
-  playingPulse: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 34, borderWidth: 2, borderColor: '#fff', opacity: 0.3 },
 });
