@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { Home, Compass, MessageCircle, Music, Plane, User, Receipt } from 'lucide-react-native';
+import { Home, MessageCircle, Plane, User, Receipt } from 'lucide-react-native';
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -73,12 +73,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <User size={22} stroke={color} />,
         }}
       />
-      <Tabs.Screen
-        name="music"
-        options={{
-          href: null,
-        }}
-      />
+
     </Tabs>
   );
 }
