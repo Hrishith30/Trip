@@ -50,15 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     
     if (!isLoading) {
-      if (!token && !inAuthGroup && !isRoot) {
-        // Redirect to welcome screen if not authenticated
-        router.replace('/');
-      } else if (token && (inAuthGroup || isRoot)) {
-
-        // Redirect to home if authenticated and on auth pages OR root landing page
-        router.replace('/(tabs)');
+      if (!token) {
+        // If not logged in and not already on the welcome screen or login/signup pages
+        if (!inAuthGroup && !isRoot) {
+          router.replace('/');
+        }
+      } else {
+        // If logged in and on the welcome screen or login/signup pages
+        if (inAuthGroup || isRoot) {
+          router.replace('/(tabs)');
+        }
       }
     }
+
   }, [token, segments, isLoading]);
 
 
