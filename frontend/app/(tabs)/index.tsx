@@ -9,14 +9,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Dashboard() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { user } = useAuth();
+  
+  const userName = user?.displayName || user?.email?.split('@')[0] || 'Traveler';
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -115,11 +120,11 @@ export default function Dashboard() {
           <View style={[styles.profileHub, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <View style={styles.hubLeft}>
               <Text style={[styles.greeting, { color: colors.tabIconDefault }]}>{getGreeting()}</Text>
-              <Text style={[styles.name, { color: colors.text }]}>Hrishith!</Text>
+              <Text style={[styles.name, { color: colors.text }]}>{userName}!</Text>
             </View>
             <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile')}>
               <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }}
+                source={{ uri: user?.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop' }}
                 style={styles.avatar}
               />
               <View style={[styles.statusIndicator, { backgroundColor: '#10b981' }]} />

@@ -1,0 +1,23 @@
+# Secrets and Credentials
+serviceAccountKey.json
+.env
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Node/Expo artifacts
+node_modules/
+.expo/
+dist/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

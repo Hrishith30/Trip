@@ -3,19 +3,37 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, Ke
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import { Alert, ActivityIndicator } from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(email, password);
+      // AuthContext handles navigation via useEffect
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -78,11 +96,18 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.mainButton, { backgroundColor: colors.tint }]}
+                style={[styles.mainButton, { backgroundColor: colors.tint, opacity: loading ? 0.7 : 1 }]}
                 onPress={handleLogin}
+                disabled={loading}
               >
-                <Text style={styles.buttonText}>Sign In</Text>
-                <ArrowRight size={18} stroke="#fff" />
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>Sign In</Text>
+                    <ArrowRight size={18} stroke="#fff" />
+                  </>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -154,7 +179,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   forgotBtn: {
-    alignSelf: 'center',
+    alignSelf: 'flex-end',
     marginTop: 4,
   },
   forgotText: {

@@ -1,19 +1,25 @@
 import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert, Modal, Pressable } from 'react-native';
-import { Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X } from 'lucide-react-native';
+import { Settings, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { themeMode, setThemeMode, isDarkMode, colors } = useTheme();
+  const { user, logout, updateProfile, uploadProfilePhoto } = useAuth();
+
+
+  
   const scrollY = useRef(new Animated.Value(0)).current;
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop');
+  const [profileImage, setProfileImage] = useState(user?.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop');
+
   const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
 
   const pickImage = async () => {
@@ -25,9 +31,19 @@ export default function ProfileScreen() {
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const newPhoto = result.assets[0].uri;
+      setProfileImage(newPhoto);
+      
+      try {
+        await uploadProfilePhoto(newPhoto);
+      } catch (error: any) {
+        Alert.alert('Upload Failed', error.message || 'Could not upload your photo to the cloud.');
+      }
+
     }
+
   };
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -145,8 +161,8 @@ export default function ProfileScreen() {
                 <Pencil size={14} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.userName, { color: colors.text }]}>Hrishith</Text>
-            <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>hrishith@example.com</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>{user?.displayName || user?.email?.split('@')[0] || 'Traveler'}</Text>
+            <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>{user?.email}</Text>
           </View>
 
           {/* Image Preview Modal */}
@@ -177,7 +193,6 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Account</Text>
             <ProfileItem icon={User} label="Personal Information" onPress={() => router.push('/settings/personal')} />
-            <ProfileItem icon={Bell} label="Notifications" onPress={() => router.push('/settings/notifications')} />
             <ProfileItem icon={Shield} label="Privacy & Security" onPress={() => router.push('/settings/privacy')} />
           </View>
 
@@ -191,7 +206,14 @@ export default function ProfileScreen() {
                     styles.themeOption,
                     themeMode === mode && { backgroundColor: colors.card, elevation: 4, shadowOpacity: 0.1, shadowRadius: 10 }
                   ]}
-                  onPress={() => setThemeMode(mode)}
+                  onPress={async () => {
+                    setThemeMode(mode);
+                    try {
+                      await updateProfile({ themePreference: mode });
+                    } catch (e) {
+                      console.error("Failed to save theme preference", e);
+                    }
+                  }}
                 >
                   <Text style={[
                     styles.themeText,
@@ -204,6 +226,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Support</Text>
             <ProfileItem icon={HelpCircle} label="Help Center" onPress={() => router.push('/settings/help')} />
@@ -211,7 +234,7 @@ export default function ProfileScreen() {
               icon={LogOut} 
               label="Log Out" 
               color="#ef4444" 
-              onPress={() => router.replace('/(auth)/login')} 
+              onPress={logout} 
             />
           </View>
 

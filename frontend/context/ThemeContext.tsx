@@ -13,8 +13,18 @@ type ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+import { useAuth } from './AuthContext';
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>('auto');
+  const { user } = useAuth();
+
+  React.useEffect(() => {
+    if (user?.themePreference) {
+      setThemeMode(user.themePreference);
+    }
+  }, [user?.themePreference]);
+
 
   const isAutoDark = () => {
     const hour = new Date().getHours();

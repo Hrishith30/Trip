@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Modal, Pressable, Linking } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import { Book, MessageSquare, Info, X, ChevronRight } from 'lucide-react-native';
+import { Book, MessageSquare, Info, X, ChevronRight, FileText, Shield } from 'lucide-react-native';
 
 const HelpItem = ({ label, sublabel, icon: Icon, onPress, colors }: any) => (
   <TouchableOpacity style={[styles.item, { borderBottomColor: colors.border }]} onPress={onPress}>
@@ -23,9 +23,9 @@ export default function HelpScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'faq' | 'support' | 'info' | null>(null);
+  const [modalType, setModalType] = useState<'faq' | 'support' | 'info' | 'terms' | 'privacy' | null>(null);
 
-  const openModal = (type: 'faq' | 'support' | 'info') => {
+  const openModal = (type: 'faq' | 'support' | 'info' | 'terms' | 'privacy') => {
     setModalType(type);
     setModalVisible(true);
   };
@@ -34,7 +34,7 @@ export default function HelpScreen() {
     switch (modalType) {
       case 'faq':
         return (
-          <View>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Frequently Asked Questions</Text>
             <View style={styles.faqList}>
               <View style={styles.faqItem}>
@@ -50,7 +50,7 @@ export default function HelpScreen() {
                 <Text style={[styles.faqAnswer, { color: colors.tabIconDefault }]}>Our core trip planning features are free. Premium features coming soon!</Text>
               </View>
             </View>
-          </View>
+          </ScrollView>
         );
       case 'support':
         return (
@@ -59,15 +59,12 @@ export default function HelpScreen() {
               <MessageSquare size={40} color={colors.tint} />
             </View>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Contact Support</Text>
-            <Text style={[styles.modalText, { color: colors.tabIconDefault }]}>Our team is available 24/7 to help you with any travel issues.</Text>
-            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.tint }]}>
-              <Text style={styles.primaryBtnText}>Start Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.secondaryBtn, { borderColor: colors.border }]}
-              onPress={() => Linking.openURL('mailto:rishi6211130@gmail.com?subject=My%20Wayfarer%20Journey%20%E2%9C%A8&body=Greetings%20from%20the%20Road!%20%F0%9F%8C%8D%0A%0AI\'m%20reaching%20out%20because%20my%20Wayfarer%20journey%20needs%20a%20little%20guidance.%20Can%20you%20help%20me%20find%20the%20path?')}
+            <Text style={[styles.modalText, { color: colors.tabIconDefault }]}>Our team is available to help you with any travel issues via email.</Text>
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
+              onPress={() => Linking.openURL('mailto:support@wayfarer.com')}
             >
-              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Email Us</Text>
+              <Text style={styles.primaryBtnText}>Email Us</Text>
             </TouchableOpacity>
           </View>
         );
@@ -87,13 +84,51 @@ export default function HelpScreen() {
                 <Text style={{ color: colors.tabIconDefault }}>Developer</Text>
                 <Text style={{ color: colors.text, fontWeight: '700' }}>Wayfarer Labs</Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={{ color: colors.tabIconDefault }}>Build Date</Text>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>May 2026</Text>
-              </View>
             </View>
-            <Text style={[styles.legalText, { color: colors.tabIconDefault }]}>By using this app, you agree to our Terms of Service and Privacy Policy.</Text>
+
+            <View style={styles.legalLinks}>
+              <TouchableOpacity style={styles.legalLinkItem} onPress={() => openModal('terms')}>
+                <FileText size={18} color={colors.tint} />
+                <Text style={[styles.legalLinkText, { color: colors.tint }]}>Terms of Service</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.legalLinkItem} onPress={() => openModal('privacy')}>
+                <Shield size={18} color={colors.tint} />
+                <Text style={[styles.legalLinkText, { color: colors.tint }]}>Privacy Policy</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        );
+      case 'terms':
+        return (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Terms of Service</Text>
+            <Text style={[styles.legalFullText, { color: colors.text }]}>
+              Welcome to Wayfarer. By using our service, you agree to these terms...{"\n\n"}
+              1. User Conduct: You are responsible for all activity on your account.{"\n"}
+              2. Content: You retain ownership of your travel data.{"\n"}
+              3. Termination: We reserve the right to suspend accounts that violate our policies.{"\n\n"}
+              Full terms are available at wayfarer.com/terms.
+            </Text>
+            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.tint, marginTop: 24 }]} onPress={() => setModalType('info')}>
+              <Text style={styles.primaryBtnText}>Back to Info</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        );
+      case 'privacy':
+        return (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Privacy Policy</Text>
+            <Text style={[styles.legalFullText, { color: colors.text }]}>
+              Your privacy is important to us. Here is how we handle your data:{"\n\n"}
+              - Data Collection: We collect your email and name to provide our service.{"\n"}
+              - Data Sharing: We never sell your personal information to third parties.{"\n"}
+              - Security: We use industry-standard encryption to protect your data.{"\n\n"}
+              Learn more at wayfarer.com/privacy.
+            </Text>
+            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.tint, marginTop: 24 }]} onPress={() => setModalType('info')}>
+              <Text style={styles.primaryBtnText}>Back to Info</Text>
+            </TouchableOpacity>
+          </ScrollView>
         );
       default:
         return null;
@@ -102,13 +137,13 @@ export default function HelpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
           headerTitle: '',
           headerBackTitle: 'Back',
           headerTransparent: true,
-        }} 
+        }}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -118,22 +153,22 @@ export default function HelpScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <HelpItem 
-            label="FAQ" 
+          <HelpItem
+            label="FAQ"
             sublabel="Common questions and answers"
             icon={Book}
             onPress={() => openModal('faq')}
             colors={colors}
           />
-          <HelpItem 
-            label="Contact Support" 
+          <HelpItem
+            label="Contact Support"
             sublabel="Get in touch with our team"
             icon={MessageSquare}
             onPress={() => openModal('support')}
             colors={colors}
           />
-          <HelpItem 
-            label="App Info" 
+          <HelpItem
+            label="App Info"
             sublabel="Version, terms and conditions"
             icon={Info}
             onPress={() => openModal('info')}
@@ -148,13 +183,13 @@ export default function HelpScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={() => setModalVisible(false)}
         >
           <Pressable style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <TouchableOpacity 
-              style={styles.closeBtn} 
+            <TouchableOpacity
+              style={styles.closeBtn}
               onPress={() => setModalVisible(false)}
             >
               <X size={24} color={colors.text} />
@@ -180,26 +215,43 @@ const styles = StyleSheet.create({
   textColumn: { flex: 1 },
   itemLabel: { fontSize: 16, fontWeight: '700' },
   itemSub: { fontSize: 13, fontWeight: '500', marginTop: 2 },
-  
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, paddingBottom: 60, minHeight: 400 },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, paddingBottom: 60, minHeight: 500, maxHeight: '80%' },
   closeBtn: { alignSelf: 'flex-end', padding: 8 },
   modalTitle: { fontSize: 24, fontWeight: '900', marginBottom: 24 },
   modalText: { fontSize: 16, textAlign: 'center', marginBottom: 32, lineHeight: 24 },
-  centeredContent: { alignItems: 'center' },
+  centeredContent: { alignItems: 'center', width: '100%' },
   largeIconBox: { width: 80, height: 80, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
-  
+
   faqList: { gap: 24 },
   faqItem: { gap: 8 },
   faqQuestion: { fontSize: 16, fontWeight: '800' },
   faqAnswer: { fontSize: 14, lineHeight: 20 },
-  
+
   primaryBtn: { width: '100%', height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  secondaryBtn: { width: '100%', height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5 },
-  secondaryBtnText: { fontSize: 16, fontWeight: '800' },
-  
+
   infoTable: { width: '100%', gap: 16, marginBottom: 32 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
-  legalText: { fontSize: 12, textAlign: 'center', opacity: 0.6 },
+
+  legalLinks: { 
+    flexDirection: 'row', 
+    width: '100%', 
+    gap: 12, 
+    marginTop: 8 
+  },
+  legalLinkItem: { 
+    flex: 1, 
+    alignItems: 'center', 
+    gap: 8, 
+    padding: 16, 
+    borderRadius: 20, 
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)'
+  },
+  legalLinkText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  legalFullText: { fontSize: 15, lineHeight: 24, opacity: 0.8 },
 });
+

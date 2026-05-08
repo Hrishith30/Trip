@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '../../context/AuthContext';
+import { ActivityIndicator } from 'react-native';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { signup } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -15,6 +18,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
     // Request permission first
@@ -38,9 +42,24 @@ export default function SignupScreen() {
     }
   };
 
-  const handleSignup = () => {
-    router.replace('/(tabs)');
+  const handleSignup = async () => {
+    if (!email || !password || !name) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signup(email, password, name, image || undefined);
+      // AuthContext handles navigation via useEffect
+    } catch (error: any) {
+
+      Alert.alert('Signup Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -135,11 +154,18 @@ export default function SignupScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.mainButton, { backgroundColor: colors.tint }]}
+                style={[styles.mainButton, { backgroundColor: colors.tint, opacity: loading ? 0.7 : 1 }]}
                 onPress={handleSignup}
+                disabled={loading}
               >
-                <Text style={styles.buttonText}>Create Account</Text>
-                <ArrowRight size={18} stroke="#fff" />
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>Create Account</Text>
+                    <ArrowRight size={18} stroke="#fff" />
+                  </>
+                )}
               </TouchableOpacity>
             </View>
 
