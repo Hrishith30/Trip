@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import { Lock, Trash2, Key, X, CheckCircle2, Eye, EyeOff } from 'lucide-react-native';
+import { Lock, Trash2, Key, X, CheckCircle2, Eye, EyeOff, Users } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../constants/Config';
 
 export default function PrivacyScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user, deleteAccount } = useAuth();
+  const { user, deleteAccount, updateProfile } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
   const [otpModalVisible, setOtpModalVisible] = useState(false);
@@ -146,6 +146,32 @@ export default function PrivacyScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={[styles.section, { marginTop: 40 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.tabIconDefault }]}>Live Map Presence</Text>
+          <View style={[styles.visibilityContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {(['all', 'friends', 'none'] as const).map((pref) => (
+              <TouchableOpacity
+                key={pref}
+                style={[
+                  styles.visibilityOption,
+                  user?.visibilityPreference === pref && { backgroundColor: colors.tint }
+                ]}
+                onPress={() => updateProfile({ visibilityPreference: pref })}
+              >
+                <Text style={[
+                  styles.visibilityText,
+                  { color: user?.visibilityPreference === pref ? '#fff' : colors.text }
+                ]}>
+                  {pref === 'all' ? 'Everyone' : pref.charAt(0).toUpperCase() + pref.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={[styles.helperText, { color: colors.tabIconDefault }]}>
+            Controls who can see your live location on the Explore map.
+          </Text>
+        </View>
+
         <Modal
           visible={otpModalVisible}
           animationType="slide"
@@ -270,5 +296,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center',
     zIndex: 999
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    paddingLeft: 4,
+  },
+  visibilityContainer: {
+    flexDirection: 'row',
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 4,
+  },
+  visibilityOption: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visibilityText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  helperText: {
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
+    fontWeight: '500',
+    paddingHorizontal: 20,
+    lineHeight: 18,
   }
 });

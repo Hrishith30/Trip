@@ -11,6 +11,7 @@ interface User {
   displayName?: string;
   photoURL?: string;
   themePreference?: 'light' | 'dark' | 'auto';
+  visibilityPreference?: 'all' | 'friends' | 'none';
 }
 
 
@@ -100,7 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         displayName: profileData.display_name || profileData.displayName,
         photoURL: profileData.photo_url || profileData.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
-        themePreference: profileData.theme_preference || 'auto'
+        themePreference: profileData.theme_preference || 'auto',
+        visibilityPreference: profileData.visibility_preference || 'none'
       };
       
       await SecureStore.setItemAsync('userToken', idToken);
@@ -145,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.displayName !== undefined) backendData.display_name = data.displayName;
     if (data.photoURL !== undefined) backendData.photo_url = data.photoURL;
     if (data.themePreference !== undefined) backendData.theme_preference = data.themePreference;
+    if (data.visibilityPreference !== undefined) backendData.visibility_preference = data.visibilityPreference;
     if (data.email !== undefined) backendData.email = data.email;
 
     const previousUser = user;
