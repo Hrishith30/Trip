@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from firebase_config import db
 from firebase_admin import auth
+from google.cloud.firestore_v1.base_query import FieldFilter
 import random
 import datetime
 import smtplib
@@ -24,8 +25,27 @@ class OTPVerifyRequest(BaseModel):
     otp: str
     new_password: str
 
+def cleanup_expired_otps():
+    """Manually delete expired or used OTPs (Free tier alternative to TTL)"""
+    try:
+        now = datetime.datetime.now()
+        # Delete expired OTPs
+        expired_docs = db.collection("otps").where(filter=FieldFilter("expiry", "<", now)).get()
+        for doc in expired_docs:
+            doc.reference.delete()
+            
+        # Delete legacy 'used' OTPs
+        used_docs = db.collection("otps").where(filter=FieldFilter("used", "==", True)).get()
+        for doc in used_docs:
+            doc.reference.delete()
+    except Exception as e:
+        print(f"Manual cleanup failed: {e}")
+
 @router.post("/send-otp")
 async def send_otp(request: OTPRequest):
+    # Clean up old OTPs to stay within free tier limits
+    cleanup_expired_otps()
+    
     # Generate 6-digit OTP
     otp_code = str(random.randint(100000, 999999))
     expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
@@ -82,8 +102,8 @@ async def verify_otp(request: OTPVerifyRequest):
         user = auth.get_user_by_email(request.email)
         auth.update_user(user.uid, password=request.new_password)
         
-        # Mark OTP as used
-        db.collection("otps").document(request.email).update({"used": True})
+        # Delete OTP after successful use to keep collection clean
+        db.collection("otps").document(request.email).delete()
         
         return {"message": "Password changed successfully"}
     except Exception as e:
@@ -117,8 +137,8 @@ async def verify_email_otp(request: EmailOTPVerifyRequest):
         # 2. Update Firestore
         db.collection("users").document(request.uid).update({"email": request.new_email})
         
-        # 3. Mark OTP as used
-        db.collection("otps").document(request.old_email).update({"used": True})
+        # 3. Delete OTP after successful use
+        db.collection("otps").document(request.old_email).delete()
         
         return {"message": "Email updated successfully"}
     except Exception as e:

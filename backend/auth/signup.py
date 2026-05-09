@@ -45,6 +45,7 @@ async def signup(request: SignupRequest):
             "photo_url": request.photo_url,
             "friend_code": await get_unique_friend_code(),
             "theme_preference": "auto",
+            "visibility_preference": "none",
             "created_at": firestore.SERVER_TIMESTAMP,
 
             "trips": [],
