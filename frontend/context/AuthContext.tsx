@@ -21,11 +21,11 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | void>;
   signup: (email: string, password: string, displayName: string, photoURL?: string) => Promise<void>;
 
   updateProfile: (data: Partial<User>) => Promise<void>;
-  uploadProfilePhoto: (uri: string) => Promise<string>;
+  uploadProfilePhoto: (uri: string, customUid?: string) => Promise<string>;
   deleteAccount: () => Promise<void>;
 
   logout: () => Promise<void>;
@@ -132,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setToken(idToken);
       setUser(userData);
+      return userData;
     } else {
       throw new Error(data.detail || 'Login failed');
     }
@@ -154,13 +155,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (response.ok) {
       // 1. After signup, we must login to establish the session and get the UID
-      await login(email, password);
+      const loggedInUser = await login(email, password);
       
       // 2. If a local photo was provided, upload it to the cloud
-      if (photoURL) {
+      if (photoURL && loggedInUser) {
         try {
-          // Note: uploadProfilePhoto uses the 'user' state which was just set by login()
-          await uploadProfilePhoto(photoURL);
+          // Pass the UID explicitly because the 'user' state update might be async
+          const cloudUrl = await uploadProfilePhoto(photoURL, loggedInUser.uid);
+          
+          // 3. IMPORTANT: Update the user state again with the REAL cloud URL 
+          // to ensure UI updates immediately
+          const finalUser = { ...loggedInUser, photoURL: cloudUrl };
+          setUser(finalUser);
+          await SecureStore.setItemAsync('userData', JSON.stringify(finalUser));
         } catch (error) {
           console.error("Failed to upload signup photo:", error);
           // Account creation was successful, so we don't throw an error for the photo
@@ -206,13 +213,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const uploadProfilePhoto = async (uri: string): Promise<string> => {
-    if (!user) throw new Error("User not authenticated");
+  const uploadProfilePhoto = async (uri: string, customUid?: string): Promise<string> => {
+    const targetUid = customUid || user?.uid;
+    if (!targetUid) throw new Error("User not authenticated");
 
     const previousUser = user;
-    // Optimistic update with local URI
-    const optimisticUser = { ...user, photoURL: uri };
-    setUser(optimisticUser);
+    // Optimistic update with local URI (only if we have a current user state)
+    if (user) {
+      const optimisticUser = { ...user, photoURL: uri };
+      setUser(optimisticUser);
+    }
 
     try {
       const formData = new FormData();
@@ -225,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         type: `image/${fileType}`,
       } as any);
 
-      const response = await fetch(`${API_URL}/profile/upload-photo/${user.uid}`, {
+      const response = await fetch(`${API_URL}/profile/upload-photo/${targetUid}`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -238,9 +248,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         const photoURL = data.photo_url;
         
-        const finalUser = { ...user, photoURL };
-        await SecureStore.setItemAsync('userData', JSON.stringify(finalUser));
-        setUser(finalUser);
+        if (user) {
+          const finalUser = { ...user, photoURL };
+          await SecureStore.setItemAsync('userData', JSON.stringify(finalUser));
+          setUser(finalUser);
+        }
         
         return photoURL;
       } else {
