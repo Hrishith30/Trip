@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from firebase_config import db
+from google.cloud.firestore_v1.base_query import FieldFilter
 import random
 import string
 
@@ -12,7 +13,7 @@ def generate_friend_code():
 def get_unique_friend_code():
     while True:
         code = generate_friend_code()
-        docs = db.collection("users").where("friend_code", "==", code).limit(1).get()
+        docs = db.collection("users").where(filter=FieldFilter("friend_code", "==", code)).limit(1).get()
         if len(docs) == 0:
             return code
 

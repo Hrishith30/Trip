@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from firebase_admin import auth
 from firebase_config import db
+from google.cloud.firestore_v1.base_query import FieldFilter
 import random
 import string
 
@@ -15,7 +16,7 @@ async def get_unique_friend_code():
     while True:
         code = generate_friend_code()
         # Check if code exists in Firestore
-        docs = db.collection("users").where("friend_code", "==", code).limit(1).get()
+        docs = db.collection("users").where(filter=FieldFilter("friend_code", "==", code)).limit(1).get()
         if len(docs) == 0:
             return code
 
