@@ -145,17 +145,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ 
         email, 
         password, 
-        display_name: displayName,
-        photo_url: photoURL 
+        display_name: displayName
+        // photo_url is omitted here because we upload the local URI separately below
       }),
     });
-
 
     const data = await response.json();
 
     if (response.ok) {
-      // After signup, we auto-login
+      // 1. After signup, we must login to establish the session and get the UID
       await login(email, password);
+      
+      // 2. If a local photo was provided, upload it to the cloud
+      if (photoURL) {
+        try {
+          // Note: uploadProfilePhoto uses the 'user' state which was just set by login()
+          await uploadProfilePhoto(photoURL);
+        } catch (error) {
+          console.error("Failed to upload signup photo:", error);
+          // Account creation was successful, so we don't throw an error for the photo
+        }
+      }
     } else {
       throw new Error(data.detail || 'Signup failed');
     }
