@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Image, Alert } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { ActivityIndicator } from 'react-native';
@@ -19,13 +19,30 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const errorOpacity = React.useRef(new Animated.Value(0)).current;
+
+  const showError = (message: string) => {
+    let friendlyMsg = message;
+    if (message.includes('EMAIL_EXISTS')) friendlyMsg = 'This email is already in use.';
+    else if (message.includes('INVALID_EMAIL')) friendlyMsg = 'Please enter a valid email address.';
+    else if (message.includes('WEAK_PASSWORD')) friendlyMsg = 'Password should be at least 6 characters.';
+    else if (message.includes('OPERATION_NOT_ALLOWED')) friendlyMsg = 'Signup is currently disabled.';
+    
+    setError(friendlyMsg);
+    Animated.sequence([
+      Animated.timing(errorOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(4000),
+      Animated.timing(errorOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setError(null));
+  };
 
   const pickImage = async () => {
     // Request permission first
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need access to your gallery to upload a profile photo.');
+      showError('Permission denied to access gallery.');
       return;
     }
 
@@ -44,7 +61,7 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!email || !password || !name) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
 
@@ -53,8 +70,7 @@ export default function SignupScreen() {
       await signup(email, password, name, image || undefined);
       // AuthContext handles navigation via useEffect
     } catch (error: any) {
-
-      Alert.alert('Signup Failed', error.message);
+      showError(error.message);
     } finally {
       setLoading(false);
     }
@@ -83,6 +99,13 @@ export default function SignupScreen() {
                 Start your travel journey today
               </Text>
             </View>
+
+            {error && (
+              <Animated.View style={[styles.errorBanner, { opacity: errorOpacity, backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+                <AlertCircle size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </Animated.View>
+            )}
 
             <View style={styles.profileSection}>
               <TouchableOpacity
@@ -319,5 +342,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     lineHeight: 16,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 10,
+  },
+  errorText: {
+    color: '#991b1b',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
 });

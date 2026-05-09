@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
-import { Lock, Trash2, Key, X, CheckCircle2 } from 'lucide-react-native';
+import { Lock, Trash2, Key, X, CheckCircle2, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../constants/Config';
 
@@ -16,6 +16,7 @@ export default function PrivacyScreen() {
   const [otpStep, setOtpStep] = useState(1); // 1: Send OTP, 2: Verify & Change
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRequestOTP = async () => {
     if (!user?.email) return;
@@ -178,14 +179,22 @@ export default function PrivacyScreen() {
                   maxLength={6}
                 />
                 
-                <TextInput
-                  style={[styles.modalInput, { color: colors.text, borderColor: colors.border }]}
-                  placeholder="New Password"
-                  placeholderTextColor={colors.tabIconDefault}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry
-                />
+                <View style={[styles.passwordContainer, { borderColor: colors.border }]}>
+                  <TextInput
+                    style={[styles.modalInputNoBorder, { color: colors.text }]}
+                    placeholder="New Password"
+                    placeholderTextColor={colors.tabIconDefault}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity 
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    {showPassword ? <EyeOff size={20} color={colors.tabIconDefault} /> : <Eye size={20} color={colors.tabIconDefault} />}
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity 
                   style={[styles.submitBtn, { backgroundColor: colors.tint }]}
@@ -235,6 +244,24 @@ const styles = StyleSheet.create({
   modalSub: { fontSize: 15, lineHeight: 22, marginBottom: 32 },
   modalForm: { gap: 16 },
   modalInput: { height: 56, borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 20, fontSize: 16, fontWeight: '600' },
+  passwordContainer: { 
+    height: 56, 
+    borderWidth: 1.5, 
+    borderRadius: 16, 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    paddingRight: 12
+  },
+  modalInputNoBorder: { 
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: 20, 
+    fontSize: 16, 
+    fontWeight: '600' 
+  },
+  eyeIcon: {
+    padding: 8,
+  },
   submitBtn: { height: 56, borderRadius: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 8 },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   loadingOverlay: { 

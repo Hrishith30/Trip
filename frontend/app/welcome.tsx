@@ -12,26 +12,38 @@ export default function WelcomeScreen() {
   const logoPosition = useRef(new Animated.Value(0)).current; // 0 = center, 1 = top
   const contentOpacity = useRef(new Animated.Value(0)).current;
 
+  const [isImageLoaded, setIsImageLoaded] = React.useState(false);
+  const containerOpacity = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    // Sequence animation
-    Animated.sequence([
-      // 1. Initial pause
-      Animated.delay(500),
-      // 2. Move logo up
-      Animated.spring(logoPosition, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 40,
-      }),
-      // 3. Fade in footer
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+    if (isImageLoaded) {
+      // Sequence animation
+      Animated.parallel([
+        Animated.timing(containerOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          // 1. Initial pause
+          Animated.delay(300),
+          // 2. Move logo up
+          Animated.spring(logoPosition, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+          }),
+          // 3. Fade in footer
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ]).start();
+    }
+  }, [isImageLoaded]);
 
   const translateY = logoPosition.interpolate({
     inputRange: [0, 1],
@@ -47,8 +59,9 @@ export default function WelcomeScreen() {
     <ImageBackground
       source={{ uri: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop' }}
       style={styles.container}
+      onLoad={() => setIsImageLoaded(true)}
     >
-      <View style={styles.overlay}>
+      <Animated.View style={[styles.overlay, { opacity: containerOpacity }]}>
         {/* Animated Logo */}
         <Animated.View style={[
           styles.animatedLogoContainer,
@@ -79,7 +92,7 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
           </View>
         </Animated.View>
-      </View>
+      </Animated.View>
     </ImageBackground>
   );
 }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { Alert, ActivityIndicator } from 'react-native';
 
@@ -16,10 +16,29 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const errorOpacity = React.useRef(new Animated.Value(0)).current;
+
+  const showError = (message: string) => {
+    // Map Firebase errors to friendly messages
+    let friendlyMsg = message;
+    if (message.includes('INVALID_LOGIN_CREDENTIALS')) friendlyMsg = 'Invalid email or password. Please try again.';
+    else if (message.includes('EMAIL_NOT_FOUND')) friendlyMsg = 'No account found with this email.';
+    else if (message.includes('INVALID_PASSWORD')) friendlyMsg = 'Incorrect password.';
+    else if (message.includes('USER_DISABLED')) friendlyMsg = 'This account has been disabled.';
+    else if (message.includes('TOO_MANY_ATTEMPTS_TRY_LATER')) friendlyMsg = 'Too many attempts. Try again later.';
+    
+    setError(friendlyMsg);
+    Animated.sequence([
+      Animated.timing(errorOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(4000),
+      Animated.timing(errorOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setError(null));
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showError('Please fill in all fields');
       return;
     }
 
@@ -28,7 +47,7 @@ export default function LoginScreen() {
       await login(email, password);
       // AuthContext handles navigation via useEffect
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      showError(error.message);
     } finally {
       setLoading(false);
     }
@@ -57,6 +76,13 @@ export default function LoginScreen() {
                 Sign in to continue planning your trips
               </Text>
             </View>
+
+            {error && (
+              <Animated.View style={[styles.errorBanner, { opacity: errorOpacity, backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+                <AlertCircle size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </Animated.View>
+            )}
 
             <View style={styles.form}>
               <View style={[styles.inputGroup, { borderBottomColor: colors.border }]}>
@@ -216,5 +242,20 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 10,
+  },
+  errorText: {
+    color: '#991b1b',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
 });

@@ -46,18 +46,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Redirect logic based on auth state
     const inAuthGroup = segments[0] === '(auth)';
-    const isRoot = !segments[0];
+    const isWelcomePage = segments[0] === 'welcome';
 
-    
     if (!isLoading) {
       if (!token) {
-        // If not logged in and not already on the welcome screen or login/signup pages
-        if (!inAuthGroup && !isRoot) {
-          router.replace('/');
+        if (!inAuthGroup && !isWelcomePage) {
+          router.replace('/welcome');
         }
       } else {
-        // If logged in and on the welcome screen or login/signup pages
-        if (inAuthGroup || isRoot) {
+        if (inAuthGroup || isWelcomePage) {
           router.replace('/(tabs)');
         }
       }
