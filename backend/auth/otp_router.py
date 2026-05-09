@@ -4,6 +4,15 @@ from firebase_config import db
 from firebase_admin import auth
 import random
 import datetime
+import smtplib
+from email.mime.text import MIMEText
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 router = APIRouter()
 
@@ -29,11 +38,23 @@ async def send_otp(request: OTPRequest):
         "used": False
     })
 
+    # Send Real Email using Gmail SMTP
+    try:
+        msg = MIMEText(f"Your password reset OTP is: {otp_code}\nIt expires in 10 minutes.")
+        msg['Subject'] = 'Wayfarer - Password Reset OTP'
+        msg['From'] = EMAIL_USER
+        msg['To'] = request.email
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.send_message(msg)
+            
+        print(f"OTP sent to {request.email}")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        # We don't raise an exception here to avoid breaking the flow if email fails in dev, 
+        # but in production you might want to.
     
-    # MOCK: In a real app, you would send an email here using SendGrid/Mailgun
-    print(f"\n[EMAIL MOCK] To: {request.email}")
-    print(f"[EMAIL MOCK] Your password reset OTP is: {otp_code}")
-    print(f"[EMAIL MOCK] It expires in 10 minutes.\n")
     
     return {"message": "OTP sent successfully to your email"}
 
