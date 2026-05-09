@@ -147,57 +147,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.themePreference !== undefined) backendData.theme_preference = data.themePreference;
     if (data.email !== undefined) backendData.email = data.email;
 
-    const response = await fetch(`${API_URL}/profile/${user.uid}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(backendData),
-    });
+    const previousUser = user;
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
 
-    if (response.ok) {
-      const updatedUser = { ...user, ...data };
-      await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Update failed');
+    try {
+      const response = await fetch(`${API_URL}/profile/${user.uid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backendData),
+      });
+
+      if (response.ok) {
+        await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
+      } else {
+        const errorData = await response.json();
+        setUser(previousUser); // Revert on failure
+        throw new Error(errorData.detail || 'Update failed');
+      }
+    } catch (e) {
+      setUser(previousUser); // Revert on network error
+      throw e;
     }
   };
 
   const uploadProfilePhoto = async (uri: string): Promise<string> => {
     if (!user) throw new Error("User not authenticated");
 
-    const formData = new FormData();
-    const uriParts = uri.split('.');
-    const fileType = uriParts[uriParts.length - 1];
+    const previousUser = user;
+    // Optimistic update with local URI
+    const optimisticUser = { ...user, photoURL: uri };
+    setUser(optimisticUser);
 
-    formData.append('file', {
-      uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-      name: `photo.${fileType}`,
-      type: `image/${fileType}`,
-    } as any);
+    try {
+      const formData = new FormData();
+      const uriParts = uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
 
-    const response = await fetch(`${API_URL}/profile/upload-photo/${user.uid}`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+      formData.append('file', {
+        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+        name: `photo.${fileType}`,
+        type: `image/${fileType}`,
+      } as any);
 
-    if (response.ok) {
-      const data = await response.json();
-      const photoURL = data.photo_url;
-      
-      // Update local state immediately
-      const updatedUser = { ...user, photoURL };
-      await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      
-      return photoURL;
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Upload failed');
+      const response = await fetch(`${API_URL}/profile/upload-photo/${user.uid}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const photoURL = data.photo_url;
+        
+        const finalUser = { ...user, photoURL };
+        await SecureStore.setItemAsync('userData', JSON.stringify(finalUser));
+        setUser(finalUser);
+        
+        return photoURL;
+      } else {
+        const errorData = await response.json();
+        setUser(previousUser); // Revert
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+    } catch (e) {
+      setUser(previousUser); // Revert
+      throw e;
     }
   };
 

@@ -18,7 +18,7 @@ export default function ProfileScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [profileImage, setProfileImage] = useState(user?.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop');
+  const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop';
 
   const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
 
@@ -32,14 +32,12 @@ export default function ProfileScreen() {
 
     if (!result.canceled) {
       const newPhoto = result.assets[0].uri;
-      setProfileImage(newPhoto);
       
       try {
         await uploadProfilePhoto(newPhoto);
       } catch (error: any) {
         Alert.alert('Upload Failed', error.message || 'Could not upload your photo to the cloud.');
       }
-
     }
 
   };
@@ -149,7 +147,7 @@ export default function ProfileScreen() {
               >
                 <View style={[styles.avatarContainer, { borderColor: colors.tint }]}>
                   <Image 
-                    source={{ uri: profileImage }} 
+                    source={{ uri: user?.photoURL || defaultAvatar }} 
                     style={styles.avatar} 
                   />
                 </View>
@@ -183,7 +181,7 @@ export default function ProfileScreen() {
                 <X size={30} color="#fff" />
               </TouchableOpacity>
               <Image 
-                source={{ uri: profileImage }} 
+                source={{ uri: user?.photoURL || defaultAvatar }} 
                 style={styles.previewImage}
                 resizeMode="contain"
               />
