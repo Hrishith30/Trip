@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useColorScheme, Animated, Image, ScrollView, Dimensions, PanResponder, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { TrendingUp, Users, MapPin, Calendar, ArrowRight, Receipt, Plane, Sparkles, Compass, Plus } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
@@ -19,8 +19,21 @@ export default function Dashboard() {
   const userName = user?.displayName || user?.email?.split('@')[0] || 'Traveler';
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<any>(null);
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset scroll position when screen is focused
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      
+      return () => {
+        // Also reset when leaving to ensure it's at top for next time
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      };
+    }, [])
+  );
 
 
   const panResponder = useRef(
@@ -102,6 +115,7 @@ export default function Dashboard() {
       <PullToRefreshCar scrollY={scrollY} />
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
         <Animated.ScrollView
+          ref={scrollRef}
           contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
           style={{ backgroundColor: colors.background }}
           onScroll={handleScroll}

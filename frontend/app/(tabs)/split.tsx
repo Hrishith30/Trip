@@ -1,5 +1,6 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Animated, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Pressable, Alert } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Receipt, Users, Plus, X, Coffee, Plane, Home, Car, MoreHorizontal, ChevronRight, CheckCircle2 } from 'lucide-react-native';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +25,20 @@ const INITIAL_EXPENSES: Expense[] = [
 export default function SplitScreen() {
   const { colors } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset scroll position when screen is focused
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      
+      return () => {
+        // Also reset when leaving to ensure it's at top for next time
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      };
+    }, [])
+  );
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [modalVisible, setModalVisible] = useState(false);
   const [settleModalVisible, setSettleModalVisible] = useState(false);
@@ -109,6 +123,7 @@ export default function SplitScreen() {
       <PullToRefreshCar scrollY={scrollY} />
 
       <Animated.ScrollView 
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -100 && !refreshing) handleRefresh(); }}

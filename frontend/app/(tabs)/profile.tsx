@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert, Modal, Pressable } from 'react-native';
 import { Settings, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,9 +16,22 @@ export default function ProfileScreen() {
 
   
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<any>(null);
   const isAtTop = useRef(true);
   const [refreshing, setRefreshing] = useState(false);
   const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop';
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset scroll position when screen is focused
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      
+      return () => {
+        // Also reset when leaving to ensure it's at top for next time
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      };
+    }, [])
+  );
 
   const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
 
@@ -114,6 +127,7 @@ export default function ProfileScreen() {
 
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
         <Animated.ScrollView 
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           onScroll={handleScroll}
           onScrollEndDrag={(e) => {

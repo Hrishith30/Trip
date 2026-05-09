@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { StyleSheet, View, Text, useColorScheme, FlatList, TouchableOpacity, Image, TextInput, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
 import { Search, Plus, MessageCircle, Sparkles, Send, X, ArrowLeft, Bot, Paperclip, Image as ImageIcon, FileText, Music as MusicIcon, MapPin, Phone, Video, MoreVertical, Mic, CheckCheck } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -27,9 +27,23 @@ const CHATS = [
 ];
 
 import { useTheme } from '../../context/ThemeContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChatScreen() {
   const { colors } = useTheme();
+  const scrollRef = useRef<FlatList>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset scroll position when screen is focused
+      scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+      
+      return () => {
+        // Also reset when leaving to ensure it's at top for next time
+        scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+      };
+    }, [])
+  );
   const [activeChat, setActiveChat] = useState<any>(null);
   const [inputText, setInputText] = useState('');
   const [isCalling, setIsCalling] = useState<'audio' | 'video' | null>(null);
@@ -358,6 +372,7 @@ export default function ChatScreen() {
       </View>
 
       <FlatList
+        ref={scrollRef}
         data={CHATS}
         renderItem={renderChatItem}
         keyExtractor={(item) => item.id}

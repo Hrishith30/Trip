@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, useColorScheme, Animated, Modal, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard, PanResponder } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/Colors';
 import { MapPin, Calendar, ArrowRight, Plus, Trash2, Edit2, X, Sparkles, Plane, Compass, Receipt, Clock, PlusCircle, CheckCircle2, Circle, ListTodo } from 'lucide-react-native';
@@ -76,7 +76,20 @@ export default function TripsScreen() {
   const { isDarkMode, colors } = useTheme();
   const router = useRouter();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<any>(null);
   const isAtTop = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset scroll position when screen is focused
+      scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+      
+      return () => {
+        // Also reset when leaving to ensure it's at top for next time
+        scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+      };
+    }, [])
+  );
 
   const panResponder = useRef(
     PanResponder.create({
@@ -140,17 +153,11 @@ export default function TripsScreen() {
     if (params.openItinerary === '1') {
       const swissTrip = trips.find(t => t.id === '1');
       if (swissTrip) {
-        // Small delay to ensure tab transition is stable
-        setTimeout(() => {
-          handleOpenItinerary(swissTrip);
-        }, 100);
+        handleOpenItinerary(swissTrip);
         router.setParams({ openItinerary: undefined });
       }
     } else if (params.addNew === '1') {
-      // Small delay to ensure tab transition is stable
-      setTimeout(() => {
-        handleOpenModal();
-      }, 100);
+      handleOpenModal();
       router.setParams({ addNew: undefined });
     }
   }, [params.openItinerary, params.addNew]);
@@ -640,6 +647,7 @@ export default function TripsScreen() {
 
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
         <Animated.FlatList
+          ref={scrollRef}
           data={trips}
           renderItem={renderTrip}
           keyExtractor={(item) => item.id}
