@@ -12,6 +12,7 @@ interface User {
   photoURL?: string;
   themePreference?: 'light' | 'dark' | 'auto';
   visibilityPreference?: 'all' | 'friends' | 'none';
+  friendCode?: string;
 }
 
 
@@ -67,11 +68,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function loadStorageData() {
     try {
       const storedToken = await SecureStore.getItemAsync('userToken');
-      const storedUser = await SecureStore.getItemAsync('userData');
+      const storedUserString = await SecureStore.getItemAsync('userData');
       
-      if (storedToken && storedUser) {
+      if (storedToken && storedUserString) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const storedUser = JSON.parse(storedUserString);
+        setUser(storedUser);
+        
+        // Background refresh to catch updates like friendCode
+        fetch(`${API_URL}/profile/${storedUser.uid}`)
+          .then(res => res.json())
+          .then(async (profileData) => {
+            if (profileData && !profileData.error) {
+              const updatedUser = {
+                ...storedUser,
+                displayName: profileData.display_name || profileData.displayName || storedUser.displayName,
+                photoURL: profileData.photo_url || profileData.photoURL || storedUser.photoURL,
+                themePreference: profileData.theme_preference || storedUser.themePreference,
+                visibilityPreference: profileData.visibility_preference || storedUser.visibilityPreference,
+                friendCode: profileData.friend_code || storedUser.friendCode
+              };
+              setUser(updatedUser);
+              await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
+            }
+          })
+          .catch(err => console.log("Background sync failed", err));
       }
     } catch (e) {
       console.error("Failed to load auth data", e);
@@ -102,7 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: profileData.display_name || profileData.displayName,
         photoURL: profileData.photo_url || profileData.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200',
         themePreference: profileData.theme_preference || 'auto',
-        visibilityPreference: profileData.visibility_preference || 'none'
+        visibilityPreference: profileData.visibility_preference || 'none',
+        friendCode: profileData.friend_code || 'WF-XXXX-XXXX'
       };
       
       await SecureStore.setItemAsync('userToken', idToken);

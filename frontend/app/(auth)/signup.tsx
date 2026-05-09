@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, useColorScheme, KeyboardAvoidingView, Platform, ScrollView, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, User, ArrowRight, Camera, Eye, EyeOff, AlertCircle, Ticket } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { ActivityIndicator } from 'react-native';
@@ -16,6 +16,7 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -174,6 +175,18 @@ export default function SignupScreen() {
                     ? <EyeOff size={18} stroke={colors.tabIconDefault} />
                     : <Eye size={18} stroke={colors.tabIconDefault} />}
                 </TouchableOpacity>
+              </View>
+              
+              <View style={[styles.inputGroup, { borderBottomColor: colors.border }]}>
+                <Ticket size={16} stroke={colors.tabIconDefault} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Invite Code (Optional)"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={inviteCode}
+                  onChangeText={setInviteCode}
+                  autoCapitalize="characters"
+                />
               </View>
 
               <TouchableOpacity

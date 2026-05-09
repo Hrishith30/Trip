@@ -1,13 +1,34 @@
 from fastapi import APIRouter
 from firebase_config import db
+import random
+import string
 
 router = APIRouter()
 
+def generate_friend_code():
+    chars = string.ascii_uppercase + string.digits
+    return "WF-" + "".join(random.choices(chars, k=4)) + "-" + "".join(random.choices(chars, k=4))
+
+def get_unique_friend_code():
+    while True:
+        code = generate_friend_code()
+        docs = db.collection("users").where("friend_code", "==", code).limit(1).get()
+        if len(docs) == 0:
+            return code
+
 @router.get("/{uid}")
 async def get_profile(uid: str):
-    user_doc = db.collection("users").document(uid).get()
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+    
     if user_doc.exists:
-        return user_doc.to_dict()
+        data = user_doc.to_dict()
+        # Backward compatibility: Generate code if missing
+        if "friend_code" not in data or not data["friend_code"]:
+            new_code = get_unique_friend_code()
+            user_ref.update({"friend_code": new_code})
+            data["friend_code"] = new_code
+        return data
     return {"error": "User not found"}
 
 @router.put("/{uid}")

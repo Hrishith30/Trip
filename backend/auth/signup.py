@@ -2,8 +2,22 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from firebase_admin import auth
 from firebase_config import db
+import random
+import string
 
 router = APIRouter()
+
+def generate_friend_code():
+    chars = string.ascii_uppercase + string.digits
+    return "WF-" + "".join(random.choices(chars, k=4)) + "-" + "".join(random.choices(chars, k=4))
+
+async def get_unique_friend_code():
+    while True:
+        code = generate_friend_code()
+        # Check if code exists in Firestore
+        docs = db.collection("users").where("friend_code", "==", code).limit(1).get()
+        if len(docs) == 0:
+            return code
 
 class SignupRequest(BaseModel):
     email: EmailStr
@@ -28,6 +42,7 @@ async def signup(request: SignupRequest):
             "email": user_record.email,
             "display_name": request.display_name,
             "photo_url": request.photo_url,
+            "friend_code": await get_unique_friend_code(),
             "theme_preference": "auto",
             "created_at": firestore.SERVER_TIMESTAMP,
 

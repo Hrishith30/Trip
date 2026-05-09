@@ -1,8 +1,9 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Switch, PanResponder, Platform, Alert, Modal, Pressable } from 'react-native';
-import { Settings, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X } from 'lucide-react-native';
+import { Settings, Shield, HelpCircle, LogOut, ChevronRight, User, Moon, Pencil, X, Copy } from 'lucide-react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 import { PullToRefreshCar } from '../../components/PullToRefreshCar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
@@ -175,6 +176,22 @@ export default function ProfileScreen() {
             </View>
             <Text style={[styles.userName, { color: colors.text }]}>{user?.displayName || user?.email?.split('@')[0] || 'Traveler'}</Text>
             <Text style={[styles.userEmail, { color: colors.tabIconDefault }]}>{user?.email}</Text>
+            
+            <TouchableOpacity 
+              style={[styles.friendCodeContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={async () => {
+                if (user?.friendCode) {
+                  await Clipboard.setStringAsync(user.friendCode);
+                  Alert.alert("Copied", "Friendship code copied to clipboard!");
+                }
+              }}
+            >
+              <Text style={[styles.friendCodeLabel, { color: colors.tabIconDefault }]}>FRIEND CODE</Text>
+              <View style={styles.codeRow}>
+                <Text style={[styles.friendCode, { color: colors.tint }]}>{user?.friendCode || 'WF-XXXX-XXXX'}</Text>
+                <Copy size={14} color={colors.tint} />
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Image Preview Modal */}
@@ -328,6 +345,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 4,
     fontWeight: '500',
+  },
+  friendCodeContainer: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  friendCodeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  friendCode: {
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   editButton: {
     marginTop: 20,
